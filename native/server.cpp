@@ -180,25 +180,25 @@ int get_swap() {
 }
 
 int set_freq(int big_freq, int little_freq) {
-    // const char* super_big_cpu = "/sys/devices/system/cpu/cpufreq/policy7/scaling_setspeed";
+    const char* super_big_cpu = "/sys/devices/system/cpu/cpufreq/policy7/scaling_setspeed";
     const char* big_cpu = "/sys/devices/system/cpu/cpufreq/policy4/scaling_setspeed";
     const char* little_cpu = "/sys/devices/system/cpu/cpufreq/policy0/scaling_setspeed";
 
-    // FILE* file_super_big = fopen(super_big_cpu, "w");
+    FILE* file_super_big = fopen(super_big_cpu, "w");
     FILE* file_big = fopen(big_cpu, "w");
     FILE* file_little = fopen(little_cpu, "w");
     
 
-    if (file_big == NULL || file_little == NULL) {
+    if (file_big == NULL || file_little == NULL || file_super_big == NULL) {
         printf("Failed to open file: %s or %s \n", big_cpu, little_cpu);
         return -1;
     }
 
-    // fprintf(file_super_big, "%d", big_freq);
+    fprintf(file_super_big, "%d", big_freq);
     fprintf(file_big, "%d", big_freq);
     fprintf(file_little, "%d", little_freq);
 
-    // fclose(file_super_big);
+    fclose(file_super_big);
     fclose(file_big);
     fclose(file_little);
 
