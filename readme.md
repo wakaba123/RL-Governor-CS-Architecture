@@ -1,0 +1,4 @@
+application 中为app的代码
+h5totflite 中为将h5模型转换为tflite格式的模型的代码
+native 中为编写的native层的收集信息的二进制程序
+test_tools 为进行整机基准测试算法测试的代码

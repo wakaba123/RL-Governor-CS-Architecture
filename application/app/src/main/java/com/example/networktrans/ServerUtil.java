@@ -57,12 +57,6 @@ public class ServerUtil {
         Log.d(TAG,"Server file found");
         // nohup /data/local/tmp/server > /data/local/tmp/server.log 2>&1 &
         CommandExecution.easyExec("nohup" +" " +  BinaryServerPosition + " " + Config.view +  " > /data/local/tmp/server.log 2>&1 &", true);
-        Thread.sleep(5000);
-
-        if (!checkServerAlive1()) {  // 启动server失败
-            Log.d(TAG,"please check your view, expected view is " + Config.view);
-            return -1;
-        }
 
         return 0;
     }

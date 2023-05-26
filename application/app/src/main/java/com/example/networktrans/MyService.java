@@ -135,7 +135,7 @@ public class MyService extends Service {
                 Log.d(TAG, "Open Server Failed, Please Wait all TIME_WAIT socket terminated\n Or Server view is not right");
                 try {
                     ServerUtil.startServer();
-                    Thread.sleep(10000);
+                    Thread.sleep(5000);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
