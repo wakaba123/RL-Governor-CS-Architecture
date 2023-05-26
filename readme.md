@@ -13,3 +13,4 @@ test_tools 为进行整机基准测试算法测试的代码
 1. native中的set_freq函数需要根据需要修改2核或3核的频率，compile.sh中的编译器选择
 2. application中的Config.java中需要修改为对应机型支持的大小核频率，需要测试的view的名称
 3. test_tools中的get_view函数，get_charge_count等函数
+4. application的assets文件夹添加对应的模型

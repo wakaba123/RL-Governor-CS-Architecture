@@ -13,17 +13,19 @@ from modules.commandExec import execute
 from modules.fpsGet import FPSGet
 from modules.cpuControl import CPUControl, get_swap
 from modules.config import *
+from modules.getView import *
 
 
 try:
-    fps = FPSGet(view=view)
+    fps = FPSGet(view=get_view())
 except:
     print('check your view!')
 
 def get_charge_count():
     out = execute('dumpsys battery')
     a = out.split('\n')
-    return  a[6][18:]
+    return  a[22][18:]
+
 
 cpu = CPUControl(2)
 frame_data = []
