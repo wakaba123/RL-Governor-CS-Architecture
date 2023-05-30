@@ -179,7 +179,7 @@ int get_swap() {
     return mem;
 }
 
-int set_freq(int big_freq, int little_freq) {
+int set_freq(int sbig_freq, int big_freq, int little_freq) {
     const char* super_big_cpu = "/sys/devices/system/cpu/cpufreq/policy7/scaling_setspeed";
     const char* big_cpu = "/sys/devices/system/cpu/cpufreq/policy4/scaling_setspeed";
     const char* little_cpu = "/sys/devices/system/cpu/cpufreq/policy0/scaling_setspeed";
@@ -194,7 +194,7 @@ int set_freq(int big_freq, int little_freq) {
         return -1;
     }
 
-    fprintf(file_super_big, "%d", big_freq);
+    fprintf(file_super_big, "%d", sbig_freq);
     fprintf(file_big, "%d", big_freq);
     fprintf(file_little, "%d", little_freq);
 
@@ -273,9 +273,9 @@ int main(int argc, char* argv[]) {
 
         if (flag == 0) {  // 本次请求为调频请求
             printf("flag 为 0, 是调频请求\n");
-            printf("大核调节至 %d, 小核调节至 %d\n", big_freq, little_freq);
+            printf("超大核调节至 %d 大核调节至 %d, 小核调节至 %d\n", sbig_freq, big_freq, little_freq);
 
-            int result = set_freq(big_freq, little_freq);
+            int result = set_freq(sbig_freq, big_freq, little_freq);
             std::string data = std::to_string(result);
             send(client_fd, data.c_str(), data.length(), 0);
 
