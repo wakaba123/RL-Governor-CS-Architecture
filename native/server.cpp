@@ -268,8 +268,8 @@ int main(int argc, char* argv[]) {
         printf("客户端的信息为:%s\n", buffer);
 
         int flag = 0;
-        int big_freq, little_freq;
-        sscanf(buffer, "%d %d %d", &flag, &big_freq, &little_freq);
+        int sbig_freq, big_freq, little_freq;
+        sscanf(buffer, "%d %d %d %d", &flag, &sbig_freq, &big_freq, &little_freq);
 
         if (flag == 0) {  // 本次请求为调频请求
             printf("flag 为 0, 是调频请求\n");
