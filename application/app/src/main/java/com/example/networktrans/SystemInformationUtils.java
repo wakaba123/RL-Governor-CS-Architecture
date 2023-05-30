@@ -52,6 +52,16 @@ public class SystemInformationUtils {
         command = "echo \"userspace\" >  /sys/devices/system/cpu/cpufreq/policy7/scaling_governor";  // big cpu governor
         CommandExecution.easyExec(command,true);
     }
+
+    public static void setGovernorToPerformance(){
+        String command = "echo \"performance\" >  /sys/devices/system/cpu/cpufreq/policy0/scaling_governor"; // little cpu governor
+        CommandExecution.easyExec(command,true);
+        command = "echo \"performance\" >  /sys/devices/system/cpu/cpufreq/policy4/scaling_governor";  // big cpu governor
+        CommandExecution.easyExec(command,true);
+        command = "echo \"performance\" >  /sys/devices/system/cpu/cpufreq/policy7/scaling_governor";  // big cpu governor
+        CommandExecution.easyExec(command,true);
+    }
+
     public static void initGovernor(){
         String command = "echo \"schedutil\" >  /sys/devices/system/cpu/cpufreq/policy0/scaling_governor"; // little cpu governor
         CommandExecution.easyExec(command,true);

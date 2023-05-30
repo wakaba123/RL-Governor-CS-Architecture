@@ -67,7 +67,7 @@ public class MyService extends Service {
             e.printStackTrace();
         }
 
-        SystemInformationUtils.setGovernorToUserSpace();
+        SystemInformationUtils.setGovernorToPerformance();
 
         try {
             sit = new SchedulerAndGovernorThread(Config.view);    // 启动调频的线程

@@ -180,9 +180,9 @@ int get_swap() {
 }
 
 int set_freq(int sbig_freq, int big_freq, int little_freq) {
-    const char* super_big_cpu = "/sys/devices/system/cpu/cpufreq/policy7/scaling_setspeed";
-    const char* big_cpu = "/sys/devices/system/cpu/cpufreq/policy4/scaling_setspeed";
-    const char* little_cpu = "/sys/devices/system/cpu/cpufreq/policy0/scaling_setspeed";
+    const char* super_big_cpu = "/sys/devices/system/cpu/cpufreq/policy7/scaling_max_freq";
+    const char* big_cpu = "/sys/devices/system/cpu/cpufreq/policy4/scaling_max_freq";
+    const char* little_cpu = "/sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq";
 
     FILE* file_super_big = fopen(super_big_cpu, "w");
     FILE* file_big = fopen(big_cpu, "w");
