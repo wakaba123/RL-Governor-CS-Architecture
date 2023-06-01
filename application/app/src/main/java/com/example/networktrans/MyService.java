@@ -189,8 +189,10 @@ public class MyService extends Service {
     }
 
     private void loadModel() {
-        String classificationModelPath = getCacheDir().getAbsolutePath() + File.separator + "model.tflite";  // 获取asset文件夹的目录
-        Utils.copyFileFromAsset(MyService.this, "model.tflite", classificationModelPath);
+        //String classificationModelPath = getCacheDir().getAbsolutePath() + File.separator + "model.tflite";  // 获取asset文件夹的目录
+        //Utils.copyFileFromAsset(MyService.this, "model.tflite", classificationModelPath);
+        String classificationModelPath = getCacheDir().getAbsolutePath() + File.separator + "model_oneplus9pro.tflite";  // 获取asset文件夹的目录
+        Utils.copyFileFromAsset(MyService.this, "model_oneplus9pro.tflite", classificationModelPath);
         // load the model
         try {
             tfLiteClassificationUtil = new TFLiteClassificationUtil(classificationModelPath);
