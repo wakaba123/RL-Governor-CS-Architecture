@@ -3,8 +3,8 @@ from keras.optimizers import Adam
 from keras.layers import Dense
 from collections import deque
 
-state_size = 5
-action_size = 16
+state_size = 6
+action_size = 27
 learning_rate = 0.005
 
 
@@ -24,5 +24,6 @@ def build_model():
 
 
 model = build_model()
-model.load_weights("model2023-03-06-15-42.h5")
+#model.load_weights("model2023-03-06-15-42.h5")
+model.load_weights("model2023-06-01-11-58.h5")
 model.save("newModelWithNetwork.h5")
