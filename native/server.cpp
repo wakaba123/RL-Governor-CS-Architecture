@@ -281,6 +281,7 @@ int main(int argc, char* argv[]) {
 
         } else if (flag == 1) {  // 本次请求是获取信息的请求
             printf("flag 为 1, 是获取信息请求\n");
+            int sbig_freq = get_sbig_cpu_freq();
             int big_freq = get_big_cpu_freq();
             int little_freq = get_little_cpu_freq();
             int cur_fps = fps->getFPS();
@@ -299,7 +300,8 @@ int main(int argc, char* argv[]) {
                 }
             }
 
-            std::string data = std::to_string(big_freq) + " " +
+            std::string data = std::to_string(sbig_freq) + " " +
+                               std::to_string(big_freq) + " " +
                                std::to_string(little_freq) + " " +
                                std::to_string(cur_fps) + " " +
                                std::to_string(mem) + " " +

@@ -191,8 +191,8 @@ public class MyService extends Service {
     private void loadModel() {
         //String classificationModelPath = getCacheDir().getAbsolutePath() + File.separator + "model.tflite";  // 获取asset文件夹的目录
         //Utils.copyFileFromAsset(MyService.this, "model.tflite", classificationModelPath);
-        String classificationModelPath = getCacheDir().getAbsolutePath() + File.separator + "model_oneplus9pro.tflite";  // 获取asset文件夹的目录
-        Utils.copyFileFromAsset(MyService.this, "model_oneplus9pro.tflite", classificationModelPath);
+        String classificationModelPath = getCacheDir().getAbsolutePath() + File.separator + Config.ModelName;  // 获取asset文件夹的目录
+        Utils.copyFileFromAsset(MyService.this, Config.ModelName, classificationModelPath);
         // load the model
         try {
             tfLiteClassificationUtil = new TFLiteClassificationUtil(classificationModelPath);
@@ -210,19 +210,21 @@ public class MyService extends Service {
         String response = ServerUtil.sendSocket("1");
         String[] values = response.split(" ");
 
-        int bigFreq = Integer.parseInt(values[0]);
-        int littleFreq = Integer.parseInt(values[1]);
-        int curFPS = Integer.parseInt(values[2]);
-        int mem = Integer.parseInt(values[3]);
-        double littleUtil = Double.parseDouble(values[4]);
-        double bigUtil = Double.parseDouble(values[5]);
+        int sbigFreq = Integer.parseInt(values[0]);
+        int bigFreq = Integer.parseInt(values[1]);
+        int littleFreq = Integer.parseInt(values[2]);
+        int curFPS = Integer.parseInt(values[3]);
+        int mem = Integer.parseInt(values[4]);
+        double littleUtil = Double.parseDouble(values[5]);
+        double bigUtil = Double.parseDouble(values[6]);
 
         long all2 = System.currentTimeMillis();
         Log.d(TAG,"getting all information takes " + (all2- all1) + " ms");
         // 到此处结束获取信息
 
 
-        if (curFPS< 50) {   // 若帧率过低，则本轮进行调度
+        if (curFPS < Config.TargetFPS - 10) {   // 若帧率过低，则本轮进行调度
+            int [] sbig_freq_list = Config.allowedSBigFrequencies;
             int [] big_freq_list = Config.allowedBigFrequencies;
             int [] little_freq_list = Config.allowedLittleFrequencies;
             Scheduler scheduler = new Scheduler(tid_list_str, big_freq_list,little_freq_list);
@@ -231,10 +233,15 @@ public class MyService extends Service {
             double[] temp1 = coordinator.coordinate(commu_info, bigUtil, littleUtil, bigFreq, littleFreq);
             CPUFreqSetting.setFreq((int) (temp1[1] * 3 + temp1[3]));
         } else {   // 若帧率正常，则本轮进行调频
-            int[] shape = {1, 5};        //  模型的输入的shape
-            int[] shape2 = {1, 16};        //  模型的输出的shape
+            int[] shape = {1, Config.ModelInputNum};        //  模型的输入的shape
+            int[] shape2 = {1, Config.ModelActionNum};        //  模型的输出的shape
 
-            float[] input = {(float)littleFreq / 1766400,(float)bigFreq/ 2649600,(float) curFPS/ 60, (float) (littleUtil + bigUtil) / 8, Math.round(mem * 1.0 / 400000) / 10.0F}; // 构建inpt
+            if(Config.ClusterNum == 3) {
+                float[] input = {(float)littleFreq / little_freq_list[-1],(float)bigFreq / big_freq_list[-1], (float)sbigFreq / sbig_freq_list[-1], (float) curFPS/ Config.TargetFPS, (float) (littleUtil + bigUtil) / 8, Math.round(mem * 1.0 / 100000) / 100.0F};
+            } else if (Config.ClusterNum == 2) {
+                float[] input = {(float)littleFreq / little_freq_list[-1],(float)bigFreq/ big_freq_list[-1],(float) curFPS/ Config.TargetFPS, (float) (littleUtil + bigUtil) / 8, Math.round(mem * 1.0 / 400000) / 10.0F};
+
+            }
 //
             Log.d(TAG, Arrays.toString(input));
 
