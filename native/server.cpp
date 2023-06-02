@@ -113,6 +113,25 @@ float get_gpu_util() {
     return (float)a / b;
 }
 
+int get_sbig_cpu_freq() {
+    const char* filename = "/sys/devices/system/cpu/cpufreq/policy7/scaling_cur_freq";
+    FILE* file = fopen(filename, "r");
+    if (file == NULL) {
+        printf("Failed to open file: %s\n", filename);
+        return -1;
+    }
+
+    int freq;
+    if (fscanf(file, "%d", &freq) != 1) {
+        printf("Failed to read frequency from file: %s\n", filename);
+        fclose(file);
+        return -1;
+    }
+
+    fclose(file);
+    return freq;
+}
+
 int get_big_cpu_freq() {
     const char* filename = "/sys/devices/system/cpu/cpufreq/policy4/scaling_cur_freq";
     FILE* file = fopen(filename, "r");
@@ -131,6 +150,7 @@ int get_big_cpu_freq() {
     fclose(file);
     return freq;
 }
+
 
 int get_little_cpu_freq() {
     const char* filename = "/sys/devices/system/cpu/cpufreq/policy0/scaling_cur_freq";
