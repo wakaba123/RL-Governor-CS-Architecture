@@ -77,7 +77,7 @@ int main() {
     sleep(1);
      
     // 设置频率
-    std::string message2 = "0 710400 672000";
+    std::string message2 = "0 2764800 2342400 1708800";
     receivedData = sendAndReceiveSocket(message2, serverIP, port);
     std::cout << "Received data: " << receivedData << std::endl;
     sleep(1);

@@ -23,3 +23,10 @@ public:
 };
 
 std::string execute(const std::string& command);
+
+const size_t MAX_QUEUE_SIZE = 200; // 设置队列的最大长度
+#define PORT 8888
+
+#define MAX_CPU_COUNT 8
+#define MAX_LINE_LENGTH 256
+#define TARGET_FPS 120

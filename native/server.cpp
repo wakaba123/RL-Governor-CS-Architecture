@@ -8,10 +8,9 @@
 #include <iostream>
 #include "fps.h"
 
-#define PORT 8888
-
-#define MAX_CPU_COUNT 8
-#define MAX_LINE_LENGTH 256
+void red() {printf("\033[1;31m");}
+void yellow() {printf("\033[1;33m");}
+void reset() {printf("\033[0m");}
 
 typedef struct {
     int user;
@@ -222,7 +221,7 @@ int set_freq(int sbig_freq, int big_freq, int little_freq) {
     fclose(file_big);
     fclose(file_little);
 
-    printf("freq : %d, %d\n", big_freq, little_freq);
+    printf("freq : %d, %d, %d\n", sbig_freq, big_freq, little_freq);
     return 0;
 }
 
@@ -292,7 +291,9 @@ int main(int argc, char* argv[]) {
         sscanf(buffer, "%d %d %d %d", &flag, &sbig_freq, &big_freq, &little_freq);
 
         if (flag == 0) {  // 本次请求为调频请求
+            red();
             printf("flag 为 0, 是调频请求\n");
+            reset();
             printf("超大核调节至 %d 大核调节至 %d, 小核调节至 %d\n", sbig_freq, big_freq, little_freq);
 
             int result = set_freq(sbig_freq, big_freq, little_freq);
@@ -300,7 +301,9 @@ int main(int argc, char* argv[]) {
             send(client_fd, data.c_str(), data.length(), 0);
 
         } else if (flag == 1) {  // 本次请求是获取信息的请求
+            red();
             printf("flag 为 1, 是获取信息请求\n");
+            reset();
             int sbig_freq = get_sbig_cpu_freq();
             int big_freq = get_big_cpu_freq();
             int little_freq = get_little_cpu_freq();
@@ -331,11 +334,15 @@ int main(int argc, char* argv[]) {
             send(client_fd, data.c_str(), data.length(), 0);
 
         } else if (flag == 2){ 
+            red();
             printf("flag 为 2, 检查server是否正常运行的请求\n");
+            reset();
             send(client_fd, view.c_str(), view.length(), 0);
 
         } else if (flag == 3){
+            red();
             printf("flag 为 3, 让server自然关闭的请求\n");
+            reset();
             std::string data = "0";
             send(client_fd, data.c_str(), data.length(), 0);
             close(client_fd);

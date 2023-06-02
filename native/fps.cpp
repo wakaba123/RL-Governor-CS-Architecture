@@ -10,7 +10,6 @@
 #include <thread>
 #include <vector>
 
-const size_t MAX_QUEUE_SIZE = 200; // 设置队列的最大长度
 std::string execute(const std::string& command) {
     std::string result;
     char buffer[128];
@@ -92,7 +91,7 @@ int FPSGet::getFPS() {
             fps_count++;
         }
     }
-    fps = std::min(fps_count, 60);
+    fps = std::min(fps_count, TARGET_FPS);
     return fps;
 }
 
