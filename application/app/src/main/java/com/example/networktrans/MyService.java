@@ -221,12 +221,12 @@ public class MyService extends Service {
         long all2 = System.currentTimeMillis();
         Log.d(TAG,"getting all information takes " + (all2- all1) + " ms");
         // 到此处结束获取信息
+        int [] sbig_freq_list = Config.allowedSBigFrequencies;
+        int [] big_freq_list = Config.allowedBigFrequencies;
+        int [] little_freq_list = Config.allowedLittleFrequencies;
 
 
         if (curFPS < Config.TargetFPS - 10) {   // 若帧率过低，则本轮进行调度
-            int [] sbig_freq_list = Config.allowedSBigFrequencies;
-            int [] big_freq_list = Config.allowedBigFrequencies;
-            int [] little_freq_list = Config.allowedLittleFrequencies;
             Scheduler scheduler = new Scheduler(tid_list_str, big_freq_list,little_freq_list);
             ArrayList<Double> commu_info = scheduler.schedule(bigFreq, littleFreq);
             Coordinator coordinator = new Coordinator(big_freq_list, little_freq_list);
@@ -237,15 +237,16 @@ public class MyService extends Service {
             int[] shape2 = {1, Config.ModelActionNum};        //  模型的输出的shape
 
             if(Config.ClusterNum == 3) {
-                float[] input = {(float)littleFreq / little_freq_list[-1],(float)bigFreq / big_freq_list[-1], (float)sbigFreq / sbig_freq_list[-1], (float) curFPS/ Config.TargetFPS, (float) (littleUtil + bigUtil) / 8, Math.round(mem * 1.0 / 100000) / 100.0F};
+                input = {(float)littleFreq / little_freq_list[-1],(float)bigFreq / big_freq_list[-1], (float)sbigFreq / sbig_freq_list[-1], (float) curFPS/ Config.TargetFPS, (float) (littleUtil + bigUtil) / 8, Math.round(mem * 1.0 / 100000) / 100.0F};
+                Log.d(TAG, Arrays.toString(input));
+                x.loadArray(input, new int[]{Config.ModelInputNum});
             } else if (Config.ClusterNum == 2) {
-                float[] input = {(float)littleFreq / little_freq_list[-1],(float)bigFreq/ big_freq_list[-1],(float) curFPS/ Config.TargetFPS, (float) (littleUtil + bigUtil) / 8, Math.round(mem * 1.0 / 400000) / 10.0F};
-
+                input = {(float)littleFreq / little_freq_list[-1],(float)bigFreq/ big_freq_list[-1],(float) curFPS/ Config.TargetFPS, (float) (littleUtil + bigUtil) / 8, Math.round(mem * 1.0 / 400000) / 10.0F};
+                Log.d(TAG, Arrays.toString(input));
+                x.loadArray(input, new int[]{Config.ModelInputNum});
             }
 //
-            Log.d(TAG, Arrays.toString(input));
 
-            x.loadArray(input, new int[]{5});
             y = TensorBuffer.createFixedSize(shape2, DataType.FLOAT32);      // tensorbuffer所特有的加载方式
 
             long t1 = System.currentTimeMillis();

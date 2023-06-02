@@ -8,7 +8,7 @@ public class Config {
     public static final int ModelInputNum = 6;
     public static final int ModelActionNum = 27;
     public static final int TargetFPS = 120;
-    public static final string ModelName = "model_oneplus9pro.tflite";
+    public static final String ModelName = "model_oneplus9pro.tflite";
 
     public static final int ClusterNum = 3;
 
