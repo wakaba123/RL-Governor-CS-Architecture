@@ -13,3 +13,7 @@
 .externalNativeBuild
 .cxx
 local.properties
+/test_tools/tests/
+/*/.vscode/
+/native/server
+/native/client_test
