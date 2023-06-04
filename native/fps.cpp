@@ -64,7 +64,16 @@ void FPSGet::getFrameDataThread() {
             continue;
         }
         // std::cout << "len : " << new_timestamps.size() << std::endl;
-        frame_queue.insert(frame_queue.end(), new_timestamps.begin(), new_timestamps.end());
+        // frame_queue.insert(frame_queue.end(), new_timestamps.begin(), new_timestamps.end());
+        for(long long timestamp : new_timestamps){
+            if (timestamp > last_timestamp){
+                frame_queue.push_back(timestamp);
+            }
+        }
+        if(new_timestamps.size() != 0){
+            last_timestamp = new_timestamps[new_timestamps.size() - 1];
+        }
+
         while (frame_queue.size() > MAX_QUEUE_SIZE) {
             frame_queue.pop_front();
         }
