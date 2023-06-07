@@ -8,9 +8,10 @@ def get_view():
     out = execute('dumpsys SurfaceFlinger | grep -i focus -A 10')
     a = out.split('\n')
     view = ""
-    for index in focus_index:
+    for index in range(len(a)):
+        print(a[index])
         if a[index][-2] == '*':
-            view = a[index-2]
+            view = a[index - 1]
             # view = a[index-1]
             break
     view = view.strip()
