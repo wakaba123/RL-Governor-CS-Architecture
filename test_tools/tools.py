@@ -49,13 +49,13 @@ if option=='init':
     execute('echo "schedutil" >  /sys/devices/system/cpu/cpufreq/policy4/scaling_governor')
     execute('echo "schedutil" >  /sys/devices/system/cpu/cpufreq/policy7/scaling_governor')
 
-    # execute('echo 1785600 > /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq')
-    # execute('echo 2419200 > /sys/devices/system/cpu/cpufreq/policy4/scaling_max_freq')
-    # execute('echo 2841600 > /sys/devices/system/cpu/cpufreq/policy7/scaling_max_freq')
+    execute('echo 1804800> /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq')
+    execute('echo 2419200 > /sys/devices/system/cpu/cpufreq/policy4/scaling_max_freq')
+    execute('echo 2841600 > /sys/devices/system/cpu/cpufreq/policy7/scaling_max_freq')
 
-    # execute('echo 300000 > /sys/devices/system/cpu/cpufreq/policy0/scaling_min_freq')
-    # execute('echo 710400 > /sys/devices/system/cpu/cpufreq/policy4/scaling_min_freq')
-    # execute('echo 825600 > /sys/devices/system/cpu/cpufreq/policy7/scaling_min_freq')
+    execute('echo 300000 > /sys/devices/system/cpu/cpufreq/policy0/scaling_min_freq')
+    execute('echo 710400 > /sys/devices/system/cpu/cpufreq/policy4/scaling_min_freq')
+    execute('echo 844800 > /sys/devices/system/cpu/cpufreq/policy7/scaling_min_freq')
 
     execute('kill -9 $(pgrep -x server)')
 
