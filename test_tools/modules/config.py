@@ -10,7 +10,7 @@ over_time = 8 * base
 test_file_path = "/home/hacksang/Documents/study/博士/项目/横向项目/OPPO/RL_DVFS/RL-Governor-CS-Architecture/test_tools/tests/"
 
 #things = ['fps', 'little', 'big','lclock','bclock','mem']
-things = ['fps', 'little', 'big','lclock','bclock','mem']
+things = ['fps', 'little', 'big','lclock','bclock','sbclock','mem']
 
 start_douyin = False
 record_battery = False

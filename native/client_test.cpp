@@ -60,7 +60,7 @@ std::string sendAndReceiveSocket(const std::string& message, const std::string& 
     return receivedData;
 }
 
-int main() {
+int main(int args, char* argv[]) {
     std::string serverIP = "127.0.0.1";
     int port = 8888;
 
@@ -77,7 +77,17 @@ int main() {
     sleep(1);
      
     // 设置频率
-    std::string message2 = "0 2764800 2342400 1708800";
+    std::string combinedArgs;
+
+    for (int i = 1; i < args; i++) {
+        combinedArgs += argv[i];
+        if (i != args - 1) {
+            combinedArgs += " ";
+        }
+    }
+    // std::string message2 = "0 2841600 2419200 1785600";
+    std::string message2 = "0 " + combinedArgs;
+    std::cout << message2.c_str() << std::endl;
     receivedData = sendAndReceiveSocket(message2, serverIP, port);
     std::cout << "Received data: " << receivedData << std::endl;
     sleep(1);
@@ -88,10 +98,10 @@ int main() {
     std::cout << "Received data: " << receivedData << std::endl;
     sleep(1);
 
-    message1 = "3";
-    receivedData = sendAndReceiveSocket(message1, serverIP, port);
-    std::cout << "Received data: " << receivedData << std::endl;
-    sleep(1);
+    // message1 = "3";
+    // receivedData = sendAndReceiveSocket(message1, serverIP, port);
+    // std::cout << "Received data: " << receivedData << std::endl;
+    // sleep(1);
  
 
     return 0;

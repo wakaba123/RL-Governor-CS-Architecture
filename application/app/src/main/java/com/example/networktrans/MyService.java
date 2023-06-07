@@ -236,12 +236,13 @@ public class MyService extends Service {
             int[] shape = {1, Config.ModelInputNum};        //  模型的输入的shape
             int[] shape2 = {1, Config.ModelActionNum};        //  模型的输出的shape
 
+            float[] input;
             if(Config.ClusterNum == 3) {
-                input = {(float)littleFreq / little_freq_list[-1],(float)bigFreq / big_freq_list[-1], (float)sbigFreq / sbig_freq_list[-1], (float) curFPS/ Config.TargetFPS, (float) (littleUtil + bigUtil) / 8, Math.round(mem * 1.0 / 100000) / 100.0F};
+                input = new float[]{(float) littleFreq / little_freq_list[little_freq_list.length - 1], (float) bigFreq / big_freq_list[big_freq_list.length - 1], (float) sbigFreq / sbig_freq_list[sbig_freq_list.length - 1], (float) curFPS / Config.TargetFPS, (float) (littleUtil + bigUtil) / 8, Math.round(mem * 1.0 / 100000) / 100.0F};
                 Log.d(TAG, Arrays.toString(input));
                 x.loadArray(input, new int[]{Config.ModelInputNum});
             } else if (Config.ClusterNum == 2) {
-                input = {(float)littleFreq / little_freq_list[-1],(float)bigFreq/ big_freq_list[-1],(float) curFPS/ Config.TargetFPS, (float) (littleUtil + bigUtil) / 8, Math.round(mem * 1.0 / 400000) / 10.0F};
+                input = new float[]{(float) littleFreq / little_freq_list[little_freq_list.length - 1], (float) bigFreq / big_freq_list[big_freq_list.length - 1], (float) curFPS / Config.TargetFPS, (float) (littleUtil + bigUtil) / 8, Math.round(mem * 1.0 / 400000) / 10.0F};
                 Log.d(TAG, Arrays.toString(input));
                 x.loadArray(input, new int[]{Config.ModelInputNum});
             }

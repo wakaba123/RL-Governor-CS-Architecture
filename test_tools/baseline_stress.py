@@ -7,7 +7,7 @@ import numpy as np
 from datetime import datetime
 import time
 sys.path.append('modules')
-from modules.commandExec import execute
+from modules.commandExec import *
 from modules.fpsGet import FPSGet
 from modules.cpuControl import CPUControl,get_swap
 from modules.config import *
@@ -38,12 +38,13 @@ def get_information(a):
     if frame < 60:
         print(colored("Frame: {}".format(frame), "red"))
     frame_data.append(frame)
+    sbig_clock = a.get_sbig_cpu_clock()
     big_clock = a.get_big_cpu_clock()
     little_clock = a.get_little_cpu_clock()
     little_util, big_util = a.get_cpu_util_time()
     mem = get_swap()
-    print("{}, {}, {}, {}, {}, {}".format(frame, little_util, big_util, little_clock, big_clock, mem))
-    return [frame, little_util, big_util, little_clock, big_clock, mem]
+    print("{}, {}, {}, {}, {}, {}".format(frame, little_util, big_util, little_clock, big_clock,sbig_clock, mem))
+    return [frame, little_util, big_util, little_clock, big_clock, sbig_clock, mem]
 
 
 ######################
@@ -114,23 +115,30 @@ while True:
 
     if t == cpu_time:
         print("*******************************CPU TIME*********************************")
-        execute('am force-stop com.example.anomalyapp') 
-        execute('am start-foreground-service -n "com.example.anomalyapp/com.example.anomalyapp.ComputeService"')
+        # execute('am force-stop com.example.anomalyapp') 
+        # execute('am start-foreground-service -n "com.example.anomalyapp/com.example.anomalyapp.ComputeService"')
+        execute('kill -9 $(pgrep -x stress)')
+        execute_bg('/data/local/tmp/stress --cpu 32')
 
 
     if t == mem_time:
         print("*******************************MEM TIME*********************************")
-        execute('am force-stop com.example.anomalyapp') 
-        execute('am start-foreground-service -n "com.example.anomalyapp/com.example.anomalyapp.DownloadService"')
+        # execute('am force-stop com.example.anomalyapp') 
+        # execute('am start-foreground-service -n "com.example.anomalyapp/com.example.anomalyapp.DownloadService"')
+        execute('kill -9 $(pgrep -x stress)')
+        execute_bg('/data/local/tmp/stress --vm 13 --vm-bytes 256M --vm-keep')
 
     if t == io_time:
         print("*******************************IO  TIME*********************************")
-        execute('am force-stop com.example.anomalyapp') 
-        execute('am start-foreground-service -n "com.example.anomalyapp/com.example.anomalyapp.LoadImageService"')
+        # execute('am force-stop com.example.anomalyapp') 
+        # execute('am start-foreground-service -n "com.example.anomalyapp/com.example.anomalyapp.LoadImageService"')
+        execute('kill -9 $(pgrep -x stress)')
+        execute_bg('/data/local/tmp/stress --io 8')
 
     if t == over_time:
         print("*******************************OVER TIME*********************************")
-        execute('am force-stop com.example.anomalyapp') 
+        # execute('am force-stop com.example.anomalyapp') 
+        execute('kill -9 $(pgrep -x stress)')
 
     if t > over_time:
         if over_last_charge != over_charge:

@@ -17,3 +17,4 @@ local.properties
 /*/.vscode/
 /native/server
 /native/client_test
+__pycache__/

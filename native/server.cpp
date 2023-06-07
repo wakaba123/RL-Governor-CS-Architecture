@@ -8,9 +8,15 @@
 #include <iostream>
 #include "fps.h"
 
-void red() {printf("\033[1;31m");}
-void yellow() {printf("\033[1;33m");}
-void reset() {printf("\033[0m");}
+void red() {
+    printf("\033[1;31m");
+}
+void yellow() {
+    printf("\033[1;33m");
+}
+void reset() {
+    printf("\033[0m");
+}
 
 typedef struct {
     int user;
@@ -150,7 +156,6 @@ int get_big_cpu_freq() {
     return freq;
 }
 
-
 int get_little_cpu_freq() {
     const char* filename = "/sys/devices/system/cpu/cpufreq/policy0/scaling_cur_freq";
     FILE* file = fopen(filename, "r");
@@ -198,6 +203,62 @@ int get_swap() {
     return mem;
 }
 
+int init_msm_performance() {
+    FILE* fp;
+
+    // 打開第一個檔案，將指令輸出到其中
+    fp = fopen("/sys/module/msm_performance/parameters/cpu_max_freq", "w");
+    if (fp == NULL) {
+        printf("無法打開檔案。\n");
+        return 1;
+    }
+    fprintf(fp, "0:1785600 1:1785600 2:1785600 3:1785600 4:2419200 5:2419200 6:2419200 7:2841600");
+    fclose(fp);
+
+    // 打開第二個檔案，將指令輸出到其中
+    fp = fopen("/sys/module/msm_performance/parameters/cpu_min_freq", "w");
+    if (fp == NULL) {
+        printf("無法打開檔案。\n");
+        return 1;
+    }
+    fprintf(fp, "0:300000 1:300000 2:300000 3:300000 4:710400 5:710400 6:710400 7:825600");
+    fclose(fp);
+
+    return 0;
+}
+
+int check_freq(int sbig_freq, int big_freq, int little_freq) {
+    const char* super_big_cpu = "/sys/devices/system/cpu/cpufreq/policy7/scaling_max_freq";
+    const char* big_cpu = "/sys/devices/system/cpu/cpufreq/policy4/scaling_max_freq";
+    const char* little_cpu = "/sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq";
+    int real_sbig_freq = 0, real_big_freq = 0, real_little_freq = 0;
+
+    FILE* file_super_big = fopen(super_big_cpu, "r");
+    FILE* file_big = fopen(big_cpu, "r");
+    FILE* file_little = fopen(little_cpu, "r");
+
+    if (file_big == NULL || file_little == NULL || file_super_big == NULL) {
+        printf("Failed to open file: %s or %s or %s\n", super_big_cpu, big_cpu, little_cpu);
+        return -1;
+    }
+
+    fscanf(file_super_big, "%d", &real_sbig_freq);
+    fscanf(file_big, "%d", &real_big_freq);
+    fscanf(file_little, "%d", &real_little_freq);
+
+    if (real_little_freq != little_freq || real_big_freq != big_freq || real_sbig_freq != sbig_freq) {
+        printf("Check Frequency Setting Failed");
+        printf("Expected freq: %d, %d, %d, Real freq: %d, %d , %d", sbig_freq, big_freq, little_freq, real_sbig_freq, real_big_freq, real_little_freq);
+        return -1;
+    }
+
+    fclose(file_super_big);
+    fclose(file_big);
+    fclose(file_little);
+
+    return 0;
+}
+
 int set_freq(int sbig_freq, int big_freq, int little_freq) {
     const char* super_big_cpu = "/sys/devices/system/cpu/cpufreq/policy7/scaling_max_freq";
     const char* big_cpu = "/sys/devices/system/cpu/cpufreq/policy4/scaling_max_freq";
@@ -206,7 +267,6 @@ int set_freq(int sbig_freq, int big_freq, int little_freq) {
     FILE* file_super_big = fopen(super_big_cpu, "w");
     FILE* file_big = fopen(big_cpu, "w");
     FILE* file_little = fopen(little_cpu, "w");
-    
 
     if (file_big == NULL || file_little == NULL || file_super_big == NULL) {
         printf("Failed to open file: %s or %s \n", big_cpu, little_cpu);
@@ -229,7 +289,7 @@ int main(int argc, char* argv[]) {
     int server_fd, client_fd, valread;
     struct sockaddr_in server_addr;
     char buffer[1024] = {0};
-    if(argc != 2){
+    if (argc != 2) {
         printf("usage: ./server <view_name>\n");
     }
     std::string view = argv[1];
@@ -296,8 +356,19 @@ int main(int argc, char* argv[]) {
             reset();
             printf("超大核调节至 %d 大核调节至 %d, 小核调节至 %d\n", sbig_freq, big_freq, little_freq);
 
+            // init_msm_performance();
             int result = set_freq(sbig_freq, big_freq, little_freq);
+
             std::string data = std::to_string(result);
+            if(check_freq(sbig_freq, big_freq, little_freq) == -1){
+                // init_msm_performance();
+                result = set_freq(sbig_freq, big_freq, little_freq);
+                printf("check failed\n");
+                send(client_fd, data.c_str(), data.length(), 0);
+                continue;
+            }
+            printf("check success\n");
+
             send(client_fd, data.c_str(), data.length(), 0);
 
         } else if (flag == 1) {  // 本次请求是获取信息的请求
@@ -333,13 +404,13 @@ int main(int argc, char* argv[]) {
 
             send(client_fd, data.c_str(), data.length(), 0);
 
-        } else if (flag == 2){ 
+        } else if (flag == 2) {
             red();
             printf("flag 为 2, 检查server是否正常运行的请求\n");
             reset();
             send(client_fd, view.c_str(), view.length(), 0);
 
-        } else if (flag == 3){
+        } else if (flag == 3) {
             red();
             printf("flag 为 3, 让server自然关闭的请求\n");
             reset();
