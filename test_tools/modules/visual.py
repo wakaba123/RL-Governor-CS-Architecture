@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 
 from config import *
-version = 5 
+# version = 5 
 # base = 25
 # cpu_time = 2 * base 
 # mem_time = 4 * base
