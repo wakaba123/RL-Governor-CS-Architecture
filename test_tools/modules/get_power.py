@@ -1,6 +1,25 @@
 import zipfile
 import subprocess
 import os
+import re
+
+from commandExec import execute
+
+def get_charge_cpu():
+    output = subprocess.check_output('adb shell dumpsys batterystats | grep -A 15 "Estimated power use"', shell = True).decode('utf-8')
+    # 使用正则表达式匹配 CPU 值
+    matches = re.findall(r"cpu:\s+(\d+\.\d+)", output)
+    # 提取 CPU 值
+    cpu_value = float(matches[0])
+    return cpu_value
+
+
+
+
+def get_charge_count():
+    out = execute('dumpsys battery')
+    a = out.split('\n')
+    return  a[6][18:]
 
 def get_power2():
     output = subprocess.check_output('adb shell dumpsys batterystats | grep -A 15 "since last charge"', shell = True)
@@ -62,4 +81,3 @@ def get_power(new_file_name):
                 os.remove(file_path)
                 print(run_time, discharge)
                 return run_time, discharge
-

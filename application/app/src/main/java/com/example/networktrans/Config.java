@@ -7,7 +7,7 @@ public class Config {
     public static final String view = "com.smile.gifmaker/com.yxcorp.gifshow.HomeActivity#0";
     public static final int ModelInputNum = 6;
     public static final int ModelActionNum = 27;
-    public static final int TargetFPS = 120;
+    public static final int TargetFPS = 60;
     public static final String ModelName = "model_oneplus9pro.tflite";
 
     public static final int ClusterNum = 3;

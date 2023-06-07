@@ -247,8 +247,8 @@ int check_freq(int sbig_freq, int big_freq, int little_freq) {
     fscanf(file_little, "%d", &real_little_freq);
 
     if (real_little_freq != little_freq || real_big_freq != big_freq || real_sbig_freq != sbig_freq) {
-        printf("Check Frequency Setting Failed");
-        printf("Expected freq: %d, %d, %d, Real freq: %d, %d , %d", sbig_freq, big_freq, little_freq, real_sbig_freq, real_big_freq, real_little_freq);
+        printf("Check Frequency Setting Failed\n");
+        printf("Expected freq: %d, %d, %d, Real freq: %d, %d, %d\n", sbig_freq, big_freq, little_freq, real_sbig_freq, real_big_freq, real_little_freq);
         return -1;
     }
 
@@ -360,16 +360,16 @@ int main(int argc, char* argv[]) {
             int result = set_freq(sbig_freq, big_freq, little_freq);
 
             std::string data = std::to_string(result);
-            if(check_freq(sbig_freq, big_freq, little_freq) == -1){
-                // init_msm_performance();
-                result = set_freq(sbig_freq, big_freq, little_freq);
+            if (check_freq(sbig_freq, big_freq, little_freq) == -1) {
                 printf("check failed\n");
+                set_freq(sbig_freq, big_freq, little_freq);
+                result = check_freq(sbig_freq, big_freq, little_freq);
+                data = std::to_string(result);
                 send(client_fd, data.c_str(), data.length(), 0);
-                continue;
+            } else {
+                printf("check success\n");
+                send(client_fd, data.c_str(), data.length(), 0);
             }
-            printf("check success\n");
-
-            send(client_fd, data.c_str(), data.length(), 0);
 
         } else if (flag == 1) {  // 本次请求是获取信息的请求
             red();

@@ -12,6 +12,7 @@ from modules.fpsGet import FPSGet
 from modules.cpuControl import CPUControl,get_swap
 from modules.config import *
 from modules.getView import *
+from modules.get_power import *
 
 view = get_view()
 
@@ -20,10 +21,6 @@ try:
 except:
     print('check your view!')
 
-def get_charge_count():
-    out = execute('dumpsys battery')
-    a = out.split('\n')
-    return  a[22][18:]
 
 cpu = CPUControl(2)
 frame_data = []
@@ -83,13 +80,13 @@ fps_thread.start()
 
 
 flag = 1
-begin_battery1 = get_charge_count()
+begin_battery1 = get_charge_cpu()
 begin_battery2 = begin_battery1
 
 while flag:
     if begin_battery2 != begin_battery1:
         break
-    begin_battery2 = get_charge_count()
+    begin_battery2 = get_charge_cpu()
     print(begin_battery2)
     time.sleep(1)
 
@@ -147,7 +144,7 @@ while True:
             else:
                 over_last_charge = over_charge 
 
-        over_charge = get_charge_count()
+        over_charge = get_charge_cpu()
         print(over_charge)
 
 
