@@ -42,7 +42,7 @@ def get_information(a):
     little_clock = a.get_little_cpu_clock()
     little_util, big_util = a.get_cpu_util_time()
     mem = get_swap()
-    print("{}, {}, {}, {}, {}, {}".format(frame, little_util, big_util, little_clock, big_clock,sbig_clock, mem))
+    print("{}, {}, {}, {}, {}, {}, {}".format(frame, little_util, big_util, little_clock, big_clock,sbig_clock, mem))
     return [frame, little_util, big_util, little_clock, big_clock,sbig_clock, mem]
 
 
@@ -63,15 +63,10 @@ execute('am force-stop com.example.anomalyapp')
 
 
 testline = []
-if start_douyin:
-    execute('monkey -p com.ss.android.ugc.aweme -c android.intent.category.LAUNCHER 1')  # 启动抖音
-time.sleep(2)
-
 
 with open(test_file_path + "testline{}.csv".format(version),"w") as f:
         writer = csv.writer(f)
         writer.writerow(things)
-
 
 execute('dumpsys batterystats --enable full-wake-history')  # 清除之前的电源信息
 execute('dumpsys batterystats --reset')
@@ -91,14 +86,15 @@ while flag:
     if begin_battery2 != begin_battery1:
         break
     begin_battery2 = get_charge_cpu()
+    print(begin_battery2)
     time.sleep(1)
 
 battery1 = begin_battery2
 
 execute('am start-foreground-service -n "com.example.networktrans/com.example.networktrans.MyService"')  # 启动我们的算法
 
-print('waiting 10 seconds for binary server to start')
-time.sleep(10)
+print('waiting 3 seconds for binary server to start')
+time.sleep(3)
 
 now1 = datetime.now()
 while True:

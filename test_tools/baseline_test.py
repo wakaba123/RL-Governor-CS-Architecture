@@ -39,10 +39,9 @@ def get_information(a):
     big_clock = a.get_big_cpu_clock()
     little_clock = a.get_little_cpu_clock()
     little_util, big_util = a.get_cpu_util_time()
-    
     mem = get_swap()
-    print("{}, {}, {}, {}, {}, {}".format(frame, little_util, big_util, little_clock, big_clock,sbig_clock, mem))
-    return [frame, little_util, big_util, little_clock, big_clock,sbig_clock, mem]
+    print("{}, {}, {}, {}, {}, {}, {}".format(frame, little_util, big_util, little_clock, big_clock,sbig_clock, mem))
+    return [frame, little_util, big_util, little_clock, big_clock, sbig_clock, mem]
 
 
 ######################

@@ -40,7 +40,7 @@ def get_information(a):
     little_clock = a.get_little_cpu_clock()
     little_util, big_util = a.get_cpu_util_time()
     mem = get_swap()
-    print("{}, {}, {}, {}, {}, {}".format(frame, little_util, big_util, little_clock, big_clock,sbig_clock, mem))
+    print("{}, {}, {}, {}, {}, {}, {}".format(frame, little_util, big_util, little_clock, big_clock,sbig_clock, mem))
     return [frame, little_util, big_util, little_clock, big_clock, sbig_clock, mem]
 
 
@@ -112,29 +112,22 @@ while True:
 
     if t == cpu_time:
         print("*******************************CPU TIME*********************************")
-        # execute('am force-stop com.example.anomalyapp') 
-        # execute('am start-foreground-service -n "com.example.anomalyapp/com.example.anomalyapp.ComputeService"')
         execute('kill -9 $(pgrep -x stress)')
         execute_bg('/data/local/tmp/stress --cpu 32')
 
 
     if t == mem_time:
         print("*******************************MEM TIME*********************************")
-        # execute('am force-stop com.example.anomalyapp') 
-        # execute('am start-foreground-service -n "com.example.anomalyapp/com.example.anomalyapp.DownloadService"')
         execute('kill -9 $(pgrep -x stress)')
         execute_bg('/data/local/tmp/stress --vm 13 --vm-bytes 256M --vm-keep')
 
     if t == io_time:
         print("*******************************IO  TIME*********************************")
-        # execute('am force-stop com.example.anomalyapp') 
-        # execute('am start-foreground-service -n "com.example.anomalyapp/com.example.anomalyapp.LoadImageService"')
         execute('kill -9 $(pgrep -x stress)')
         execute_bg('/data/local/tmp/stress --io 8')
 
     if t == over_time:
         print("*******************************OVER TIME*********************************")
-        # execute('am force-stop com.example.anomalyapp') 
         execute('kill -9 $(pgrep -x stress)')
 
     if t > over_time:
@@ -151,8 +144,7 @@ while True:
 battery2 = over_charge
 t2 = datetime.now()
 print(battery1 , battery2)
-print(int(battery1) - int(battery2))
-cost = int(battery1) - int(battery2)
+cost = int(battery2) - int(battery1)
 avg_fps = np.mean(frame_data)
 print(cost)
 print((t2-t1).total_seconds())
@@ -168,5 +160,3 @@ execute('am kill-all')  # 清除所有后台应用
 execute('am stopservice -n "com.example.anomalyapp/com.example.anomalyapp.ComputeService"')
 execute('am stopservice -n "com.example.anomalyapp/com.example.anomalyapp.DownloadService"')
 execute('am stopservice -n "com.example.anomalyapp/com.example.anomalyapp.LoadImageService"')
-
-
