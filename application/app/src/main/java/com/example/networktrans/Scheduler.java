@@ -70,7 +70,7 @@ public class Scheduler {
 
         for(int i = 0; i < thread_num; i++){
             String command;
-            if(i == 1){
+            if(position_bit[i] == 1){
                 command = "taskset -p f0 " + tid_list.get(i);
             } else {
                 command = "taskset -p 0f " + tid_list.get(i);
