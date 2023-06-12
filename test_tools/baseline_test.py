@@ -7,11 +7,12 @@ import numpy as np
 from datetime import datetime
 import time
 sys.path.append('modules')
-from modules.commandExec import execute
+from modules.commandExec import *
 from modules.fpsGet import FPSGet
 from modules.cpuControl import CPUControl,get_swap
 from modules.config import *
 from modules.getView import *
+from modules.get_power import *
 
 view = get_view()
 
@@ -20,10 +21,6 @@ try:
 except:
     print('check your view!')
 
-def get_charge_count():
-    out = execute('dumpsys battery')
-    a = out.split('\n')
-    return  a[22][18:]
 
 cpu = CPUControl(2)
 frame_data = []
@@ -38,12 +35,13 @@ def get_information(a):
     if frame < 60:
         print(colored("Frame: {}".format(frame), "red"))
     frame_data.append(frame)
+    sbig_clock = a.get_sbig_cpu_clock()
     big_clock = a.get_big_cpu_clock()
     little_clock = a.get_little_cpu_clock()
     little_util, big_util = a.get_cpu_util_time()
     mem = get_swap()
-    print("{}, {}, {}, {}, {}, {}".format(frame, little_util, big_util, little_clock, big_clock, mem))
-    return [frame, little_util, big_util, little_clock, big_clock, mem]
+    print("{}, {}, {}, {}, {}, {}, {}".format(frame, little_util, big_util, little_clock, big_clock,sbig_clock, mem))
+    return [frame, little_util, big_util, little_clock, big_clock, sbig_clock, mem]
 
 
 ######################
@@ -82,13 +80,13 @@ fps_thread.start()
 
 
 flag = 1
-begin_battery1 = get_charge_count()
+begin_battery1 = get_charge_cpu()
 begin_battery2 = begin_battery1
 
 while flag:
     if begin_battery2 != begin_battery1:
         break
-    begin_battery2 = get_charge_count()
+    begin_battery2 = get_charge_cpu()
     print(begin_battery2)
     time.sleep(1)
 
@@ -139,15 +137,14 @@ while True:
             else:
                 over_last_charge = over_charge 
 
-        over_charge = get_charge_count()
+        over_charge = get_charge_cpu()
         print(over_charge)
 
 
 battery2 = over_charge
 t2 = datetime.now()
 print(battery1 , battery2)
-print(int(battery1) - int(battery2))
-cost = int(battery1) - int(battery2)
+cost = int(battery2) - int(battery1)
 avg_fps = np.mean(frame_data)
 print(cost)
 print((t2-t1).total_seconds())
@@ -163,5 +160,3 @@ execute('am kill-all')  # 清除所有后台应用
 execute('am stopservice -n "com.example.anomalyapp/com.example.anomalyapp.ComputeService"')
 execute('am stopservice -n "com.example.anomalyapp/com.example.anomalyapp.DownloadService"')
 execute('am stopservice -n "com.example.anomalyapp/com.example.anomalyapp.LoadImageService"')
-
-
