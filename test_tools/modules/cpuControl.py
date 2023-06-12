@@ -92,7 +92,8 @@ class CPUControl:
 		if self.core_type == 3:
 			subprocess.run(['adb' , 'shell', 'echo', self.little_clock_list[i], '>', self.little_max_freq + ''])
 			subprocess.run(['adb' , 'shell', 'echo', self.little_clock_list[i], '>', self.little_min_freq + ''])
-		subprocess.run(['adb' , 'shell', 'echo', self.little_clock_list[i], '>', little_setspeed_path + ''])
+		else:
+			subprocess.run(['adb' , 'shell', 'echo', self.little_clock_list[i], '>', little_setspeed_path + ''])
 
 	def set_big_cpu_clock(self, i):
 		self.big_clk = i
@@ -101,7 +102,8 @@ class CPUControl:
 		if self.core_type == 3:
 			subprocess.run(['adb' , 'shell', 'echo', self.big_clock_list[i], '>', self.big_max_freq + ''])
 			subprocess.run(['adb' , 'shell', 'echo', self.big_clock_list[i], '>', self.big_min_freq + ''])
-		subprocess.run(['adb' , 'shell', 'echo', self.big_clock_list[i], '>', big_setspeed_path + ''])
+        else:
+		    subprocess.run(['adb' , 'shell', 'echo', self.big_clock_list[i], '>', big_setspeed_path + ''])
 
 	def set_sbig_cpu_clock(self, i):
 		self.sbig_clk = i
@@ -109,9 +111,9 @@ class CPUControl:
 		if self.core_type == 3:
 			subprocess.run(['adb' , 'shell', 'echo', self.sbig_clock_list[i], '>', self.sbig_max_freq + ''])
 			subprocess.run(['adb' , 'shell', 'echo', self.sbig_clock_list[i], '>', self.sbig_min_freq + ''])
-		sbig_curfreq_path = "/sys/devices/system/cpu/cpufreq/policy0/scaling_cur_freq"
+        else:
+		    sbig_curfreq_path = "/sys/devices/system/cpu/cpufreq/policy7/scaling_cur_freq"
 		subprocess.run(['adb' , 'shell', 'echo', self.sbig_clock_list[i], '>', sbig_setspeed_path + ''])
-		
 
 
 	def get_cpu_util(self):
