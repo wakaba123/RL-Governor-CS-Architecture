@@ -47,9 +47,9 @@ std::vector<double> Coordinator::coordinate(const std::vector<double>& commu_inf
             big_scale_freq_idx = getArrayIndex(big_freq_list, big_current_freq);
         } else {
             big_scale = commu_info[2];
-            big_scale_freq_idx = static_cast<int>(commu_info[3]);
+            big_scale_freq_idx = (int)(commu_info[3]);
             if (big_scale_freq_idx % 2 == 1) {
-                big_scale_freq_idx += static_cast<int>(commu_info[2]);
+                big_scale_freq_idx += (int)(commu_info[2]);
             }
         }
     } else {
@@ -75,5 +75,5 @@ std::vector<double> Coordinator::coordinate(const std::vector<double>& commu_inf
     little_scale_freq_idx = std::min(6, little_scale_freq_idx);
     big_scale_freq_idx = std::max(2, big_scale_freq_idx);
     little_scale_freq_idx = std::max(2, little_scale_freq_idx);
-    return { big_scale, big_scale_freq_idx, little_scale, little_scale_freq_idx };
+    return { big_scale, (double)big_scale_freq_idx, little_scale, (double)little_scale_freq_idx };
 }

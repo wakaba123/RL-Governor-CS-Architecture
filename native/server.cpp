@@ -6,7 +6,13 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <iostream>
+#include <vector>
+#include <unordered_map>
+#include <fstream>
+#include <chrono>
+#include "coordinator.h"
 #include "fps.h"
+#include "scheduler.h"
 
 void red() {
     printf("\033[1;31m");
@@ -285,14 +291,109 @@ int set_freq(int sbig_freq, int big_freq, int little_freq) {
     return 0;
 }
 
+std::vector<int> split_to_int(const std::string &input, char delimiter){
+    std::vector<int> tokens;
+    std::string token;
+    std::istringstream tokenStream(input);
+
+    while (std::getline(tokenStream, token, delimiter)) {
+        tokens.push_back(stoi(token));
+    }
+
+    return tokens;
+}
+
+std::unordered_map<std::string, std::string> config;
+int get_config() {
+    std::ifstream file("/data/local/tmp/config.ini");
+    if (file.is_open()) {
+        std::string line;
+        while (std::getline(file, line)) {
+            // 忽略空行和注释
+            if (line.empty() || line[0] == '#') {
+                continue;
+            }
+
+            // 解析键值对
+            size_t delimiterPos = line.find('=');
+            if (delimiterPos != std::string::npos) {
+                std::string key = line.substr(0, delimiterPos);
+                std::string value = line.substr(delimiterPos + 1);
+                config[key] = value;
+            }
+        }
+        file.close();
+        // 使用配置项
+        // 暂时不需要，直接使用全局变量config获取即可
+      
+    } else {
+        std::cout << "Failed to open the configuration file." << std::endl;
+        return -1;
+    }
+    return 0;
+}
+
+std::vector<int> split_to_int(const std::string &input, char delimiter){
+    std::vector<int> tokens;
+    std::string token;
+    std::istringstream tokenStream(input);
+
+    while (std::getline(tokenStream, token, delimiter)) {
+        tokens.push_back(stoi(token));
+    }
+
+    return tokens;
+}
+
+std::unordered_map<std::string, std::string> config;
+int get_config() {
+    std::ifstream file("/data/local/tmp/config.ini");
+    if (file.is_open()) {
+        std::string line;
+        while (std::getline(file, line)) {
+            // 忽略空行和注释
+            if (line.empty() || line[0] == '#') {
+                continue;
+            }
+
+            // 解析键值对
+            size_t delimiterPos = line.find('=');
+            if (delimiterPos != std::string::npos) {
+                std::string key = line.substr(0, delimiterPos);
+                std::string value = line.substr(delimiterPos + 1);
+                config[key] = value;
+            }
+        }
+        file.close();
+        // 使用配置项
+        // 暂时不需要，直接使用全局变量config获取即可
+      
+    } else {
+        std::cout << "Failed to open the configuration file." << std::endl;
+        return -1;
+    }
+    return 0;
+}
+
 int main(int argc, char* argv[]) {
     int server_fd, client_fd, valread;
     struct sockaddr_in server_addr;
     char buffer[1024] = {0};
-    if (argc != 2) {
-        printf("usage: ./server <view_name>\n");
+    if (argc != 3) {
+        printf("usage: ./server <view_name> <pid_list>\n");
+        return 1;
     }
+    if(get_config()!=0){
+        printf("get config failed\n");
+        return 1;
+    }
+
     std::string view = argv[1];
+    std::string pid_list = argv[2];
+    std::vector<int> big_freq_list = split_to_int(config["BIG_FREQ_LIST"], ',');
+    std::vector<int> little_freq_list = split_to_int(config["LITTLE_FREQ_LIST"], ',');
+
+    Coordinator coordinator(big_freq_list, little_freq_list);
 
     // 初始化
     CPUControl control;
@@ -326,6 +427,14 @@ int main(int argc, char* argv[]) {
     }
 
     printf("服务端已启动，等待客户端连接...\n");
+
+    int big_freq ;
+    int little_freq ;
+    int cur_fps;
+    int mem ;
+
+    double little_util;
+    double big_util;
 
     // 接受客户端连接请求
     while (1) {
@@ -383,8 +492,8 @@ int main(int argc, char* argv[]) {
 
             update_cpu_utilization(&control, utilization);
 
-            double little_util = 0.0;
-            double big_util = 0.0;
+            little_util = 0.0;
+            big_util = 0.0;
 
             for (int i = 0; i < MAX_CPU_COUNT; i++) {
                 if (i < 4) {
@@ -418,6 +527,31 @@ int main(int argc, char* argv[]) {
             send(client_fd, data.c_str(), data.length(), 0);
             close(client_fd);
             break;
+        } else if (flag == 4) {
+            printf("flag 为 4, 因为帧率没有达到，触发scheduler和coordinator \n");
+
+            // auto start = std::chrono::high_resolution_clock::now();
+            Scheduler scheduler(pid_list, big_freq_list, little_freq_list);
+            // auto end = std::chrono::high_resolution_clock::now();
+            // auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+            // std::cout << "第一行代码的执行时间: " << duration << " 毫秒" << std::endl;
+            
+            // start = std::chrono::high_resolution_clock::now();
+            std::vector<double> commu_info  = scheduler.schdule(big_freq, little_freq);
+            // end = std::chrono::high_resolution_clock::now();
+            // duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+            // std::cout << "代码的执行时间: " << duration << " 毫秒" << std::endl;
+            
+            // start = std::chrono::high_resolution_clock::now();
+            std::vector<double> temp = coordinator.coordinate(commu_info, big_util, little_util,big_freq, little_freq);
+            // end = std::chrono::high_resolution_clock::now();
+            // duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+            // std::cout << "代码的执行时间: " << duration << " 毫秒" << std::endl;
+           
+
+            int choice = (int)temp[1] * 3 + (int)temp[3];
+            std::string data = std::to_string(choice);
+            send(client_fd, data.c_str(), data.length(), 0);
         }
 
         close(client_fd);
