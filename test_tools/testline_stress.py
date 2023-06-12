@@ -4,7 +4,7 @@ import time
 import sys
 from termcolor import colored
 from threading import Thread
-sys.path.append('/home/blues/Desktop/networkTrans/test_tools/modules')
+sys.path.append('modules')
 from datetime import datetime
 import simpleaudio as sa
 import numpy as np

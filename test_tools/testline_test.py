@@ -4,7 +4,7 @@ import time
 import sys
 from termcolor import colored
 from threading import Thread
-sys.path.append('/home/blues/Desktop/networkTrans/test_tools/modules')
+sys.path.append('modules')
 from datetime import datetime
 import simpleaudio as sa
 import numpy as np
@@ -27,7 +27,7 @@ def get_charge_count():
     return  a[22][18:]
 
 
-cpu = CPUControl(2)
+cpu = CPUControl(ClusterNum)
 frame_data = []
 
 def get_information(a):
@@ -37,11 +37,10 @@ def get_information(a):
     except:
         pass
         return None
-    #if frame < 30:
-        #frame = 59 
-    if frame < 60:
+    if frame < TargetFPS:
         print(colored("Frame: {}".format(frame), "red"))
     frame_data.append(frame)
+    sbig_clock = a.get_sbig_cpu_clock()
     big_clock = a.get_big_cpu_clock()
     little_clock = a.get_little_cpu_clock()
     little_util, big_util = a.get_cpu_util_time()
@@ -53,6 +52,8 @@ def get_information(a):
 
 execute('echo "schedutil" >  /sys/devices/system/cpu/cpufreq/policy0/scaling_governor')  # 恢复为自带调频
 execute('echo "schedutil" >  /sys/devices/system/cpu/cpufreq/policy4/scaling_governor')
+if ClusterNum == 3:
+	execute('echo "schedutil" >  /sys/devices/system/cpu/cpufreq/policy4/scaling_governor')
 
 
 execute('am kill-all')  # 清除所有后台应用
