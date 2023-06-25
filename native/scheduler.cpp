@@ -1,5 +1,15 @@
 #include "scheduler.h"
-#include<chrono>
+#include <chrono>
+#include "execute.h"
+#include <iostream>
+#include <vector>
+#include <thread>
+#include <linux/perf_event.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
+#include <cstring>
+#include <asm/unistd.h>
+
 
 int set_cpu_mask(pid_t pid, int from, int end) {
     return 1;
@@ -48,24 +58,6 @@ std::vector<int> argsort(std::vector<double> input) {
         index[min] = temp;
     }
     return index;
-}
-
-std::string execute1(const std::string& command) {
-    std::string result;
-    char buffer[1024];
-    FILE* pipe = popen(command.c_str(), "r");
-    if (!pipe) {
-        printf("执行命令失败！\n");
-        std::cout << command.c_str() << std::endl;
-        return "";
-    }
-
-    while (fgets(buffer, sizeof(buffer), pipe) != NULL) {
-        result += buffer;
-    }
-
-    pclose(pipe);
-    return result;
 }
 
 std::vector<std::string> split(const std::string& input, char delimiter) {  // 该split对单个分隔符进行分隔
@@ -139,92 +131,87 @@ Scheduler::Scheduler(std::string tid_list_str, std::vector<int>& big_freq_list_i
     }
 }
 
+// 定义性能事件类型
+enum PerfEventType {
+    TASK_CLOCK = PERF_TYPE_SOFTWARE,
+    INSTRUCTIONS = PERF_TYPE_HARDWARE,
+};
+
+// 获取指定PID的性能事件计数器值
+void getEventCounter(pid_t pid, PerfEventType eventType, long long& counter) {
+    // 创建 perf_event_attr 结构体并设置属性
+    struct perf_event_attr pe = {};
+    std::memset(&pe, 0, sizeof(struct perf_event_attr));
+    pe.type = eventType;
+    pe.size = sizeof(struct perf_event_attr);
+    pe.config = eventType == INSTRUCTIONS ? PERF_COUNT_HW_INSTRUCTIONS : PERF_COUNT_SW_TASK_CLOCK;
+    pe.disabled = 1;
+    pe.exclude_kernel = 1;
+    pe.exclude_hv = 1;
+
+    // 创建 perf_event_open 的文件描述符
+    int fd = syscall(__NR_perf_event_open, &pe, pid, -1, -1, 0);
+    if (fd == -1) {
+        std::perror("perf_event_open");
+        return;
+    }
+
+    // 启动事件计数
+    ioctl(fd, PERF_EVENT_IOC_RESET, 0);
+    ioctl(fd, PERF_EVENT_IOC_ENABLE, 0);
+
+    // 停止事件计数
+    sleep(1);
+
+    // 读取事件计数器的值
+    read(fd, &counter, sizeof(long long));
+
+    // 关闭文件描述符
+    close(fd);
+}
+ 
+
 std::vector<double> Scheduler::schdule(int big_current_freq, int little_current_freq) {
     big_scale = 0;
     little_scale = 0;
     big_scale_freq_idx = 0;
     little_scale_freq_idx = 0;
-    std::string command = "simpleperf stat -e task-clock,instructions -t " + tid_list_str + " --duration 1 --per-thread";
-    auto start = std::chrono::high_resolution_clock::now();
 
-    std::string result = execute1(command);
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    std::cout << "execute时间: " << duration << " 毫秒" << std::endl;
+    std::vector<pid_t> pidList = tid_list;  // 要监测的PID列表
 
-    std::vector<std::string> result_array = split(result, '\n');
-    result_array = std::vector<std::string>(result_array.begin() + 3, result_array.end());
+    std::vector<long long> taskClockList(pidList.size());
+    std::vector<long long> instructionsList(pidList.size());
 
-    if (result_array.size() != 8) {
-        commu_info.push_back(big_priority);
-        commu_info.push_back(little_priority);
-        commu_info.push_back(static_cast<double>(big_scale));
-        commu_info.push_back(static_cast<double>(big_scale_freq_idx));
-        commu_info.push_back(static_cast<double>(little_scale));
-        commu_info.push_back(static_cast<double>(little_scale_freq_idx));
-        return commu_info;
+    std::vector<std::thread> threads;
+
+    // 创建线程获取每个PID的计数器值
+    for (size_t i = 0; i < pidList.size() * 2; ++i) {
+        threads.emplace_back([&taskClockList, &instructionsList, i, pidList]() {
+            getEventCounter(pidList[i], TASK_CLOCK, taskClockList[i]);
+            // getEventCounter(pidList[i], INSTRUCTIONS, instructionsList[i]);
+        });
+        threads.emplace_back([&taskClockList, &instructionsList, i, pidList]() {
+            // getEventCounter(pidList[i], TASK_CLOCK, taskClockList[i]);
+            getEventCounter(pidList[i], INSTRUCTIONS, instructionsList[i]);
+        });
     }
 
-    int pmu;
-    int i;
-    for (i = 0; i < pmu_num; i++) {
-        std::string thread_name = split(result_array[i * thread_num])[0];
-        if (result_array[i * thread_num].find("(ms)") != std::string::npos) {
-            pmu = std::stoi(replace(split(split(result_array[i * thread_num])[3], '.')[0], ",", ""));
-        } else {
-            pmu = std::stoi(replace(split(result_array[i * thread_num])[3], ",", ""));
-        }
-        if (thread_name == ".smile.gifmaker") {
-            main_pmu_data[i].push_back(pmu);
-            all_pmu_data[0].push_back(pmu);
-        } else if (thread_name == "RenderThread") {
-            render_pmu_data[i].push_back(pmu);
-            all_pmu_data[1].push_back(pmu);
-        } else {
-            sf_pmu_data[i].push_back(pmu);
-            all_pmu_data[2].push_back(pmu);
-        }
-
-        thread_name = split(result_array[i * thread_num + 1])[0];
-        if (result_array[i * thread_num + 1].find("(ms)") != std::string::npos) {
-            pmu = std::stoi(replace(split(split(result_array[i * thread_num + 1])[3], '.')[0], ",", ""));
-        } else {
-            pmu = std::stoi(replace(split(result_array[i * thread_num + 1])[3], ",", ""));
-        }
-        if (thread_name == ".smile.gifmaker") {
-            main_pmu_data[i].push_back(pmu);
-            all_pmu_data[0].push_back(pmu);
-        } else if (thread_name == "RenderThread") {
-            render_pmu_data[i].push_back(pmu);
-            all_pmu_data[1].push_back(pmu);
-        } else {
-            sf_pmu_data[i].push_back(pmu);
-            all_pmu_data[2].push_back(pmu);
-        }
-
-        thread_name = split(result_array[i * thread_num + 2])[0];
-        if (result_array[i * thread_num + 2].find("(ms)") != std::string::npos) {
-            pmu = std::stoi(replace(split(split(result_array[i * thread_num + 2])[3], '.')[0], ",", ""));
-        } else {
-            pmu = std::stoi(replace(split(result_array[i * thread_num + 2])[3], ",", ""));
-        }
-        if (thread_name == ".smile.gifmaker") {
-            main_pmu_data[i].push_back(pmu);
-            all_pmu_data[0].push_back(pmu);
-        } else if (thread_name == "RenderThread") {
-            render_pmu_data[i].push_back(pmu);
-            all_pmu_data[1].push_back(pmu);
-        } else {
-            sf_pmu_data[i].push_back(pmu);
-            all_pmu_data[2].push_back(pmu);
-        }
+    // 等待所有线程完成
+    for (auto& thread : threads) {
+        thread.join();
     }
+
+    // 打印结果
+    for (size_t i = 0; i < pidList.size(); ++i) {
+        all_pmu_data[i].push_back(taskClockList[i]/100000);
+        all_pmu_data[i].push_back(instructionsList[i]);
+    }
+
 
     for (int i1 = 0; i1 < thread_num; i1++) {
         priority_arr.push_back(all_pmu_data[i1][0] / 1000.0);
     }
 
-    std::cout << "here after priority" << std::endl;
 
     little_priority = 0;
     big_priority = 0;
@@ -246,7 +233,7 @@ std::vector<double> Scheduler::schdule(int big_current_freq, int little_current_
     std::vector<int> big_scale_freq_arr = {0, 0, 0};
     std::vector<int> little_scale_freq_arr = {0, 0, 0};
 
-    for (i = 0; i < sort_index.size(); i++) {
+    for (int i = 0; i < sort_index.size(); i++) {
         int index = sort_index[i];
         int task_clock = all_pmu_data[index][0];
         int inst = all_pmu_data[index][1];
