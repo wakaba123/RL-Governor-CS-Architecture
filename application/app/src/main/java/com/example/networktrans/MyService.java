@@ -68,7 +68,7 @@ public class MyService extends Service {
             e.printStackTrace();
         }
 
-        SystemInformationUtils.setGovernorToPerformance();
+//        SystemInformationUtils.setGovernorToPerformance();
 
         try {
             sit = new SchedulerAndGovernorThread(Config.view);    // 启动调频的线程
@@ -115,74 +115,60 @@ public class MyService extends Service {
 
     public class SchedulerAndGovernorThread extends Thread {
         private String view;
-        private String pid;
-        private String tid_list_str;
+        private boolean check = false;
         private boolean isStop = false;
 
         public SchedulerAndGovernorThread(String view) throws InterruptedException {
             this.view = view;
-
         }
 
         public void setStop() {
             isStop = true;
         }
 
+        public boolean checkView() {  // result 1 means not correct , result 0 means correct
+            String result = ServerUtil.sendSocket("5 " + view);
+            return !Objects.equals(result, "1");
+        }
+
         @Override
         public void run() {
-            boolean currentViewIsOrNot = false;
-            String currentActivity = null;
-
-
             while (!isStop) {
-                if (!currentViewIsOrNot) {    // 如果当前的view不是想要的view
-                    do {   // 开始循环获得当前的view
+
+                while(!check){  // 进行整个的检查
+
+                    while (!ServerUtil.checkServerAlive1()) {  // 检查server是否正常
                         try {
                             Thread.sleep(1000);
                         } catch (InterruptedException e) {
-                            e.printStackTrace();
+                            throw new RuntimeException(e);
                         }
-                        currentActivity = SystemInformationUtils.getCurrentFocusWindow();
-                        Log.d(TAG, "current view is " + currentActivity);
-                    } while ((currentActivity.length() <= 24) || !currentActivity.substring(0, 24).equals(view.substring(0, 24)));  // 判断当前前台是否是抖音，如果不是，则继续循环
-                    // 能出循环说明当前已经是抖音里面了
-                    try {
-                        Thread.sleep(4000);
-//                        SystemInformationUtils.init(view);  // init 如果失败，说明当前不在抖音中，或者此时很卡
-                        String currentPid = SystemInformationUtils.getCurrentForegroundAppPid();
-                        if (!Objects.equals(this.pid, currentPid)) {
-                            pid = currentPid;
-                            String renderThreadTid = SystemInformationUtils.getRenderThreadTid(pid);
-                            String surfaceflingerTid = SystemInformationUtils.getSurfaceFlinger();
-                            this.tid_list_str = pid + ',' + renderThreadTid + ',' + surfaceflingerTid;
+                        Log.d(TAG, "check whether server is running " + view);
+                    }
+                    // 能出循环说明server正常
+
+                    while (!checkView()) {    // 检查当前view
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
                         }
-                        currentViewIsOrNot = true;
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        continue;                           // 从头开始
+                        Log.d(TAG, "current view is not right, expected view is " + view);
                     }
+                    // 能出循环说明当前的view正确
+                    check = true;
                 }
-                while (!ServerUtil.checkServerAlive1()) {
-                    Log.d(TAG, "Open Server Failed, Please Wait all TIME_WAIT socket terminated\n Or Server view is not right");
-                    try {
-                        ServerUtil.startServer(this.tid_list_str);
-                        Thread.sleep(5000);
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-                try {                                       // 能走到这里，说明已经init成功了
+
+                try {                                       // 开始进行调频和调度
                     Thread.sleep(1000);
-                    // get pid list
                     long t1 = System.currentTimeMillis();
                     Log.d(TAG, "===========begin==============");
-                    calculate(tid_list_str);                            // 使用模型计算下一次的频率以及设置频率
+                    calculate();                            // 使用模型计算下一次的频率以及设置频率
                     Log.d(TAG, "===========over==============");
                     long t2 = System.currentTimeMillis();
                     Log.d(TAG, "total time takes " + (t2 - t1) + " ms");
-
                 } catch (Exception e) {
-                    currentViewIsOrNot = false;
+                    check = false;
                     Log.d(TAG, "Unkown Error");
                     e.printStackTrace();
                 }
@@ -191,10 +177,9 @@ public class MyService extends Service {
     }
 
     private void loadModel() {
-        //String classificationModelPath = getCacheDir().getAbsolutePath() + File.separator + "model.tflite";  // 获取asset文件夹的目录
-        //Utils.copyFileFromAsset(MyService.this, "model.tflite", classificationModelPath);
         String classificationModelPath = getCacheDir().getAbsolutePath() + File.separator + Config.ModelName;  // 获取asset文件夹的目录
         Utils.copyFileFromAsset(MyService.this, Config.ModelName, classificationModelPath);
+
         // load the model
         try {
             tfLiteClassificationUtil = new TFLiteClassificationUtil(classificationModelPath);
@@ -205,51 +190,36 @@ public class MyService extends Service {
         }
     }
 
-    private void calculate(String tid_list_str) throws Exception {                            // 模型预测和频率修改的函数
+    private void calculate() throws Exception {                            // 模型预测和频率修改的函数
         float fps = 0F;
 
         long all1 = System.currentTimeMillis();   // 此处开始发送socket获取信息
         String response = ServerUtil.sendSocket("1");
         String[] values = response.split(" ");
 
-        int sbigFreq = Integer.parseInt(values[0]);
-        int bigFreq = Integer.parseInt(values[1]);
-        int littleFreq = Integer.parseInt(values[2]);
-        int curFPS = Integer.parseInt(values[3]);
-        int mem = Integer.parseInt(values[4]);
-        double littleUtil = Double.parseDouble(values[5]);
-        double bigUtil = Double.parseDouble(values[6]);
+        int bigFreq = Integer.parseInt(values[0]);
+        int littleFreq = Integer.parseInt(values[1]);
+        int curFPS = Integer.parseInt(values[2]);
+        int mem = Integer.parseInt(values[3]);
+        double littleUtil = Double.parseDouble(values[4]);
+        double bigUtil = Double.parseDouble(values[5]);
 
         long all2 = System.currentTimeMillis();
         Log.d(TAG, "getting all information takes " + (all2 - all1) + " ms");
+
         // 到此处结束获取信息
-        int[] sbig_freq_list = Config.allowedSBigFrequencies;
         int[] big_freq_list = Config.allowedBigFrequencies;
         int[] little_freq_list = Config.allowedLittleFrequencies;
 
-
-//        if (curFPS < Config.TargetFPS - 10) {   // 若帧率过低，则本轮进行调度
-//            Scheduler scheduler = new Scheduler(tid_list_str, big_freq_list,little_freq_list);
-//            ArrayList<Double> commu_info = scheduler.schedule(bigFreq, littleFreq);
-//            Coordinator coordinator = new Coordinator(big_freq_list, little_freq_list);
-//            double[] temp1 = coordinator.coordinate(commu_info, bigUtil, littleUtil, bigFreq, littleFreq);
-//            CPUFreqSetting.setFreq((int) (temp1[1] * 3 + temp1[3]));
-//        } else {   // 若帧率正常，则本轮进行调频
         int[] shape = {1, Config.ModelInputNum};        //  模型的输入的shape
         int[] shape2 = {1, Config.ModelActionNum};        //  模型的输出的shape
 
         float[] input;
-        if (Config.ClusterNum == 3) {
-            input = new float[]{(float) littleFreq / little_freq_list[little_freq_list.length - 1], (float) bigFreq / big_freq_list[big_freq_list.length - 1], (float) sbigFreq / sbig_freq_list[sbig_freq_list.length - 1], (float) curFPS / Config.TargetFPS, (float) (littleUtil + bigUtil) / 8, Math.round(mem * 1.0 / 100000) / 100.0F};
-            Log.d(TAG, Arrays.toString(input));
-            x.loadArray(input, new int[]{Config.ModelInputNum});
-        } else if (Config.ClusterNum == 2) {
-            input = new float[]{(float) littleFreq / little_freq_list[little_freq_list.length - 1], (float) bigFreq / big_freq_list[big_freq_list.length - 1], (float) curFPS / Config.TargetFPS, (float) (littleUtil + bigUtil) / 8, Math.round(mem * 1.0 / 400000) / 10.0F};
-            Log.d(TAG, Arrays.toString(input));
-            x.loadArray(input, new int[]{Config.ModelInputNum});
-        }
-//
 
+        input = new float[]{(float) littleFreq / little_freq_list[little_freq_list.length - 1], (float) bigFreq / big_freq_list[big_freq_list.length - 1], (float) curFPS / Config.TargetFPS, (float) (littleUtil + bigUtil) / 8, Math.round(mem * 1.0 / 400000) / 10.0F};
+        Log.d(TAG, Arrays.toString(input));
+
+        x.loadArray(input, new int[]{Config.ModelInputNum});
         y = TensorBuffer.createFixedSize(shape2, DataType.FLOAT32);      // tensorbuffer所特有的加载方式
 
         long t1 = System.currentTimeMillis();
@@ -268,10 +238,10 @@ public class MyService extends Service {
 
         int choice_coordinator = -1;
         t1 = System.currentTimeMillis();
-        if (curFPS < Config.TargetFPS - 10) {   // 因为帧率没有达到要求，触发了scheduler和coordinator
+        if (curFPS < Config.TargetFPS + 1)  {   // 因为帧率没有达到要求，触发了scheduler和coordinator
             response = ServerUtil.sendSocket("4");
             choice_coordinator = Integer.parseInt(response);
-        }else if(choice == last_choice){
+        } else if (choice == last_choice) {
             Log.d(TAG, "same as the last set");
             return;
         }

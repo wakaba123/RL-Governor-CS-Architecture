@@ -2,6 +2,7 @@
 #include <deque>
 #include <mutex>
 #include <vector>
+#include <thread>
 
 class FPSGet {
 private:
@@ -13,11 +14,13 @@ private:
     unsigned long long base_timestamp = 0;
     unsigned long long last_timestamp = 0;
     void getFrameDataThread();
+    std::thread m_fps_thread;
 
 public:
     bool while_flag = 1;
     FPSGet(const std::string& view);
     void start();
+    void stop();
     int getFPS();
     std::pair<unsigned long long, std::vector<unsigned long long>> getFrameData();
 };
@@ -29,4 +32,4 @@ const size_t MAX_QUEUE_SIZE = 200; // 设置队列的最大长度
 
 #define MAX_CPU_COUNT 8
 #define MAX_LINE_LENGTH 256
-#define TARGET_FPS 120
+#define TARGET_FPS 60

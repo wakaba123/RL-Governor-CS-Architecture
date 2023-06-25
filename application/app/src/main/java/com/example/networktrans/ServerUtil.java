@@ -46,20 +46,20 @@ public class ServerUtil {
         return response;
     }
 
-    public static int startServer(String pid_list) throws InterruptedException {
-        Path path = Paths.get(BinaryServerPosition);
-
-        if (!Files.exists(path)) {
-            Log.d(TAG,"Server file not exist!");
-            return -1;
-        }
-
-        Log.d(TAG,"Server file found");
-        // nohup /data/local/tmp/server > /data/local/tmp/server.log 2>&1 &
-        CommandExecution.easyExec("nohup" +" " +  BinaryServerPosition + " " + Config.view + " " + pid_list +  " >> /data/local/tmp/server.log 2>&1 &", true);
-
-        return 0;
-    }
+//    public static int startServer(String pid_list) throws InterruptedException {
+//        Path path = Paths.get(BinaryServerPosition);
+//
+//        if (!Files.exists(path)) {
+//            Log.d(TAG,"Server file not exist!");
+//            return -1;
+//        }
+//
+//        Log.d(TAG,"Server file found");
+//        // nohup /data/local/tmp/server > /data/local/tmp/server.log 2>&1 &
+//        CommandExecution.easyExec("nohup" +" " +  BinaryServerPosition + " " + Config.view + " " + pid_list +  " >> /data/local/tmp/server.log 2>&1 &", true);
+//
+//        return 0;
+//    }
 
     public static boolean checkServerAlive1() {
         String res = sendSocket("2");
@@ -67,7 +67,8 @@ public class ServerUtil {
             return false;
         }
         Log.d(TAG, "Server view is " + res);
-        return res.equals(Config.view);
+        boolean temp = res.trim().equals(Config.view);
+        return temp;
     }
 
     public static void stopServer() {

@@ -5,14 +5,16 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <iostream>
-#include <vector>
-#include <unordered_map>
-#include <fstream>
 #include <chrono>
+#include <fstream>
+#include <iostream>
+#include <regex>
+#include <unordered_map>
+#include <vector>
 #include "coordinator.h"
 #include "fps.h"
 #include "scheduler.h"
+#include "state.h"
 
 void red() {
     printf("\033[1;31m");
@@ -124,24 +126,24 @@ float get_gpu_util() {
     return (float)a / b;
 }
 
-int get_sbig_cpu_freq() {
-    const char* filename = "/sys/devices/system/cpu/cpufreq/policy7/scaling_cur_freq";
-    FILE* file = fopen(filename, "r");
-    if (file == NULL) {
-        printf("Failed to open file: %s\n", filename);
-        return -1;
-    }
+// int get_sbig_cpu_freq() {
+//     const char* filename = "/sys/devices/system/cpu/cpufreq/policy7/scaling_cur_freq";
+//     FILE* file = fopen(filename, "r");
+//     if (file == NULL) {
+//         printf("Failed to open file: %s\n", filename);
+//         return -1;
+//     }
 
-    int freq;
-    if (fscanf(file, "%d", &freq) != 1) {
-        printf("Failed to read frequency from file: %s\n", filename);
-        fclose(file);
-        return -1;
-    }
+//     int freq;
+//     if (fscanf(file, "%d", &freq) != 1) {
+//         printf("Failed to read frequency from file: %s\n", filename);
+//         fclose(file);
+//         return -1;
+//     }
 
-    fclose(file);
-    return freq;
-}
+//     fclose(file);
+//     return freq;
+// }
 
 int get_big_cpu_freq() {
     const char* filename = "/sys/devices/system/cpu/cpufreq/policy4/scaling_cur_freq";
@@ -209,89 +211,49 @@ int get_swap() {
     return mem;
 }
 
-int init_msm_performance() {
-    FILE* fp;
+int set_governor(std::string target_governor) {
+    const char* big_cpu = "/sys/devices/system/cpu/cpufreq/policy4/scaling_governor";
+    const char* little_cpu = "/sys/devices/system/cpu/cpufreq/policy0/scaling_governor";
 
-    // 打開第一個檔案，將指令輸出到其中
-    fp = fopen("/sys/module/msm_performance/parameters/cpu_max_freq", "w");
-    if (fp == NULL) {
-        printf("無法打開檔案。\n");
-        return 1;
-    }
-    fprintf(fp, "0:1785600 1:1785600 2:1785600 3:1785600 4:2419200 5:2419200 6:2419200 7:2841600");
-    fclose(fp);
-
-    // 打開第二個檔案，將指令輸出到其中
-    fp = fopen("/sys/module/msm_performance/parameters/cpu_min_freq", "w");
-    if (fp == NULL) {
-        printf("無法打開檔案。\n");
-        return 1;
-    }
-    fprintf(fp, "0:300000 1:300000 2:300000 3:300000 4:710400 5:710400 6:710400 7:825600");
-    fclose(fp);
-
-    return 0;
-}
-
-int check_freq(int sbig_freq, int big_freq, int little_freq) {
-    const char* super_big_cpu = "/sys/devices/system/cpu/cpufreq/policy7/scaling_max_freq";
-    const char* big_cpu = "/sys/devices/system/cpu/cpufreq/policy4/scaling_max_freq";
-    const char* little_cpu = "/sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq";
-    int real_sbig_freq = 0, real_big_freq = 0, real_little_freq = 0;
-
-    FILE* file_super_big = fopen(super_big_cpu, "r");
-    FILE* file_big = fopen(big_cpu, "r");
-    FILE* file_little = fopen(little_cpu, "r");
-
-    if (file_big == NULL || file_little == NULL || file_super_big == NULL) {
-        printf("Failed to open file: %s or %s or %s\n", super_big_cpu, big_cpu, little_cpu);
-        return -1;
-    }
-
-    fscanf(file_super_big, "%d", &real_sbig_freq);
-    fscanf(file_big, "%d", &real_big_freq);
-    fscanf(file_little, "%d", &real_little_freq);
-
-    if (real_little_freq != little_freq || real_big_freq != big_freq || real_sbig_freq != sbig_freq) {
-        printf("Check Frequency Setting Failed\n");
-        printf("Expected freq: %d, %d, %d, Real freq: %d, %d, %d\n", sbig_freq, big_freq, little_freq, real_sbig_freq, real_big_freq, real_little_freq);
-        return -1;
-    }
-
-    fclose(file_super_big);
-    fclose(file_big);
-    fclose(file_little);
-
-    return 0;
-}
-
-int set_freq(int sbig_freq, int big_freq, int little_freq) {
-    const char* super_big_cpu = "/sys/devices/system/cpu/cpufreq/policy7/scaling_max_freq";
-    const char* big_cpu = "/sys/devices/system/cpu/cpufreq/policy4/scaling_max_freq";
-    const char* little_cpu = "/sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq";
-
-    FILE* file_super_big = fopen(super_big_cpu, "w");
     FILE* file_big = fopen(big_cpu, "w");
     FILE* file_little = fopen(little_cpu, "w");
-
-    if (file_big == NULL || file_little == NULL || file_super_big == NULL) {
+    if (file_big == NULL || file_little == NULL) {
         printf("Failed to open file: %s or %s \n", big_cpu, little_cpu);
         return -1;
     }
 
-    fprintf(file_super_big, "%d", sbig_freq);
-    fprintf(file_big, "%d", big_freq);
-    fprintf(file_little, "%d", little_freq);
+    fprintf(file_big, "%s", target_governor.c_str());
+    fprintf(file_little, "%s", target_governor.c_str());
 
-    fclose(file_super_big);
     fclose(file_big);
     fclose(file_little);
 
-    printf("freq : %d, %d, %d\n", sbig_freq, big_freq, little_freq);
     return 0;
 }
 
-std::vector<int> split_to_int(const std::string &input, char delimiter){
+int set_freq(int big_freq, int little_freq) {
+    const char* big_cpu = "/sys/devices/system/cpu/cpufreq/policy4/scaling_setspeed";
+    const char* little_cpu = "/sys/devices/system/cpu/cpufreq/policy0/scaling_setspeed";
+
+    FILE* file_big = fopen(big_cpu, "w");
+    FILE* file_little = fopen(little_cpu, "w");
+
+    if (file_big == NULL || file_little == NULL) {
+        printf("Failed to open file: %s or %s \n", big_cpu, little_cpu);
+        return -1;
+    }
+
+    fprintf(file_big, "%d", big_freq);
+    fprintf(file_little, "%d", little_freq);
+
+    fclose(file_big);
+    fclose(file_little);
+
+    printf("freq :  %d, %d\n", big_freq, little_freq);
+    return 0;
+}
+
+std::vector<int> split_to_int(const std::string& input, char delimiter) {
     std::vector<int> tokens;
     std::string token;
     std::istringstream tokenStream(input);
@@ -301,98 +263,23 @@ std::vector<int> split_to_int(const std::string &input, char delimiter){
     }
 
     return tokens;
-}
-
-std::unordered_map<std::string, std::string> config;
-int get_config() {
-    std::ifstream file("/data/local/tmp/config.ini");
-    if (file.is_open()) {
-        std::string line;
-        while (std::getline(file, line)) {
-            // 忽略空行和注释
-            if (line.empty() || line[0] == '#') {
-                continue;
-            }
-
-            // 解析键值对
-            size_t delimiterPos = line.find('=');
-            if (delimiterPos != std::string::npos) {
-                std::string key = line.substr(0, delimiterPos);
-                std::string value = line.substr(delimiterPos + 1);
-                config[key] = value;
-            }
-        }
-        file.close();
-        // 使用配置项
-        // 暂时不需要，直接使用全局变量config获取即可
-      
-    } else {
-        std::cout << "Failed to open the configuration file." << std::endl;
-        return -1;
-    }
-    return 0;
-}
-
-std::vector<int> split_to_int(const std::string &input, char delimiter){
-    std::vector<int> tokens;
-    std::string token;
-    std::istringstream tokenStream(input);
-
-    while (std::getline(tokenStream, token, delimiter)) {
-        tokens.push_back(stoi(token));
-    }
-
-    return tokens;
-}
-
-std::unordered_map<std::string, std::string> config;
-int get_config() {
-    std::ifstream file("/data/local/tmp/config.ini");
-    if (file.is_open()) {
-        std::string line;
-        while (std::getline(file, line)) {
-            // 忽略空行和注释
-            if (line.empty() || line[0] == '#') {
-                continue;
-            }
-
-            // 解析键值对
-            size_t delimiterPos = line.find('=');
-            if (delimiterPos != std::string::npos) {
-                std::string key = line.substr(0, delimiterPos);
-                std::string value = line.substr(delimiterPos + 1);
-                config[key] = value;
-            }
-        }
-        file.close();
-        // 使用配置项
-        // 暂时不需要，直接使用全局变量config获取即可
-      
-    } else {
-        std::cout << "Failed to open the configuration file." << std::endl;
-        return -1;
-    }
-    return 0;
 }
 
 int main(int argc, char* argv[]) {
     int server_fd, client_fd, valread;
     struct sockaddr_in server_addr;
     char buffer[1024] = {0};
-    if (argc != 3) {
-        printf("usage: ./server <view_name> <pid_list>\n");
-        return 1;
-    }
-    if(get_config()!=0){
-        printf("get config failed\n");
-        return 1;
-    }
 
-    std::string view = argv[1];
-    std::string pid_list = argv[2];
-    std::vector<int> big_freq_list = split_to_int(config["BIG_FREQ_LIST"], ',');
-    std::vector<int> little_freq_list = split_to_int(config["LITTLE_FREQ_LIST"], ',');
+    State current_state;
+    current_state.init();
+    printf("here init success\n");
 
+    std::string view = current_state.view;
+    std::string pid_list = current_state.pid_list;
+    std::vector<int> big_freq_list = split_to_int(current_state.config["BIG_FREQ_LIST"], ',');
+    std::vector<int> little_freq_list = split_to_int(current_state.config["LITTLE_FREQ_LIST"], ',');
+
+    printf("here assign success\n");
     Coordinator coordinator(big_freq_list, little_freq_list);
 
     // 初始化
@@ -428,10 +315,10 @@ int main(int argc, char* argv[]) {
 
     printf("服务端已启动，等待客户端连接...\n");
 
-    int big_freq ;
-    int little_freq ;
+    int big_freq;
+    int little_freq;
     int cur_fps;
-    int mem ;
+    int mem;
 
     double little_util;
     double big_util;
@@ -456,35 +343,27 @@ int main(int argc, char* argv[]) {
         printf("客户端的信息为:%s\n", buffer);
 
         int flag = 0;
-        int sbig_freq, big_freq, little_freq;
-        sscanf(buffer, "%d %d %d %d", &flag, &sbig_freq, &big_freq, &little_freq);
+        sscanf(buffer, "%d", &flag);
 
         if (flag == 0) {  // 本次请求为调频请求
             red();
             printf("flag 为 0, 是调频请求\n");
             reset();
-            printf("超大核调节至 %d 大核调节至 %d, 小核调节至 %d\n", sbig_freq, big_freq, little_freq);
+
+            int big_freq, little_freq;
+            sscanf(buffer, "%d %d %d", &flag, &big_freq, &little_freq);
+            printf("大核调节至 %d, 小核调节至 %d\n", big_freq, little_freq);
 
             // init_msm_performance();
-            int result = set_freq(sbig_freq, big_freq, little_freq);
+            int result = set_freq(big_freq, little_freq);
 
             std::string data = std::to_string(result);
-            if (check_freq(sbig_freq, big_freq, little_freq) == -1) {
-                printf("check failed\n");
-                set_freq(sbig_freq, big_freq, little_freq);
-                result = check_freq(sbig_freq, big_freq, little_freq);
-                data = std::to_string(result);
-                send(client_fd, data.c_str(), data.length(), 0);
-            } else {
-                printf("check success\n");
-                send(client_fd, data.c_str(), data.length(), 0);
-            }
-
+            set_freq(big_freq, little_freq);
         } else if (flag == 1) {  // 本次请求是获取信息的请求
             red();
             printf("flag 为 1, 是获取信息请求\n");
             reset();
-            int sbig_freq = get_sbig_cpu_freq();
+            // int sbig_freq = get_sbig_cpu_freq();
             int big_freq = get_big_cpu_freq();
             int little_freq = get_little_cpu_freq();
             int cur_fps = fps->getFPS();
@@ -503,8 +382,7 @@ int main(int argc, char* argv[]) {
                 }
             }
 
-            std::string data = std::to_string(sbig_freq) + " " +
-                               std::to_string(big_freq) + " " +
+            std::string data = std::to_string(big_freq) + " " +
                                std::to_string(little_freq) + " " +
                                std::to_string(cur_fps) + " " +
                                std::to_string(mem) + " " +
@@ -529,28 +407,35 @@ int main(int argc, char* argv[]) {
             break;
         } else if (flag == 4) {
             printf("flag 为 4, 因为帧率没有达到，触发scheduler和coordinator \n");
-
-            // auto start = std::chrono::high_resolution_clock::now();
             Scheduler scheduler(pid_list, big_freq_list, little_freq_list);
-            // auto end = std::chrono::high_resolution_clock::now();
-            // auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-            // std::cout << "第一行代码的执行时间: " << duration << " 毫秒" << std::endl;
-            
-            // start = std::chrono::high_resolution_clock::now();
-            std::vector<double> commu_info  = scheduler.schdule(big_freq, little_freq);
-            // end = std::chrono::high_resolution_clock::now();
-            // duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-            // std::cout << "代码的执行时间: " << duration << " 毫秒" << std::endl;
-            
-            // start = std::chrono::high_resolution_clock::now();
-            std::vector<double> temp = coordinator.coordinate(commu_info, big_util, little_util,big_freq, little_freq);
-            // end = std::chrono::high_resolution_clock::now();
-            // duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-            // std::cout << "代码的执行时间: " << duration << " 毫秒" << std::endl;
-           
+            std::vector<double> commu_info = scheduler.schdule(big_freq, little_freq);
+            std::vector<double> temp = coordinator.coordinate(commu_info, big_util, little_util, big_freq, little_freq);
 
             int choice = (int)temp[1] * 3 + (int)temp[3];
             std::string data = std::to_string(choice);
+            send(client_fd, data.c_str(), data.length(), 0);
+
+        } else if (flag == 5) {
+            printf("flag为5, 检测当前页面的view是否为app要求的view\n");
+            char stringValue[40];
+            sscanf(buffer, "%d%s", &flag, stringValue);
+            std::string strValue(stringValue);
+            int ret;
+
+            std::cout << strValue.c_str() <<  std::endl << current_state.view.c_str() << std::endl;
+            if (strValue != current_state.view) {
+                ret = 1;
+                printf("检测到前台应用的view与预期不同\n");
+            } else {
+                ret = 0;
+                current_state.init();
+
+                view = current_state.view;
+                pid_list = current_state.pid_list;
+                set_governor("userspace");
+            }
+
+            std::string data = std::to_string(ret);
             send(client_fd, data.c_str(), data.length(), 0);
         }
 

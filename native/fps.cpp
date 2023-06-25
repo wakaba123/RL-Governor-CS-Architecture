@@ -9,23 +9,7 @@
 #include <string>
 #include <thread>
 #include <vector>
-
-std::string execute(const std::string& command) {
-    std::string result;
-    char buffer[128];
-    FILE* pipe = popen(command.c_str(), "r");
-    if (!pipe) {
-        printf("执行命令失败！\n");
-        return "";
-    }
-
-    while (fgets(buffer, sizeof(buffer), pipe) != NULL) {
-        result += buffer;
-    }
-
-    pclose(pipe);
-    return result;
-}
+#include "execute.h"
 
 FPSGet::FPSGet(const std::string& view) {
     this->view = view;
@@ -51,7 +35,16 @@ FPSGet::FPSGet(const std::string& view) {
 
 void FPSGet::start() {
     std::thread fps_thread(&FPSGet::getFrameDataThread, this);
-    fps_thread.detach();
+    m_fps_thread = std::move(fps_thread);
+    // fps_thread.detach();
+}
+
+void FPSGet::stop() {
+    while_flag = false;
+
+    if (m_fps_thread.joinable()) {
+        m_fps_thread.join();
+    }
 }
 
 void FPSGet::getFrameDataThread() {
@@ -65,12 +58,12 @@ void FPSGet::getFrameDataThread() {
         }
         // std::cout << "len : " << new_timestamps.size() << std::endl;
         // frame_queue.insert(frame_queue.end(), new_timestamps.begin(), new_timestamps.end());
-        for(long long timestamp : new_timestamps){
-            if (timestamp > last_timestamp){
+        for (long long timestamp : new_timestamps) {
+            if (timestamp > last_timestamp) {
                 frame_queue.push_back(timestamp);
             }
         }
-        if(new_timestamps.size() != 0){
+        if (new_timestamps.size() != 0) {
             last_timestamp = new_timestamps[new_timestamps.size() - 1];
         }
 
