@@ -35,13 +35,12 @@ def get_information(a):
     if frame < 60:
         print(colored("Frame: {}".format(frame), "red"))
     frame_data.append(frame)
-    sbig_clock = a.get_sbig_cpu_clock()
     big_clock = a.get_big_cpu_clock()
     little_clock = a.get_little_cpu_clock()
     little_util, big_util = a.get_cpu_util_time()
     mem = get_swap()
-    print("{}, {}, {}, {}, {}, {}, {}".format(frame, little_util, big_util, little_clock, big_clock,sbig_clock, mem))
-    return [frame, little_util, big_util, little_clock, big_clock, sbig_clock, mem]
+    print("{}, {}, {}, {}, {}, {}".format(frame, little_util, big_util, little_clock, big_clock, mem))
+    return [frame, little_util, big_util, little_clock, big_clock,  mem]
 
 
 ######################
@@ -80,13 +79,13 @@ fps_thread.start()
 
 
 flag = 1
-begin_battery1 = get_charge_cpu()
+begin_battery1 = get_charge_count()
 begin_battery2 = begin_battery1
 
 while flag:
     if begin_battery2 != begin_battery1:
         break
-    begin_battery2 = get_charge_cpu()
+    begin_battery2 = get_charge_count()
     print(begin_battery2)
     time.sleep(1)
 
@@ -137,7 +136,7 @@ while True:
             else:
                 over_last_charge = over_charge 
 
-        over_charge = get_charge_cpu()
+        over_charge = get_charge_count()
         print(over_charge)
 
 

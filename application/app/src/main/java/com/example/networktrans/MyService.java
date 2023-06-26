@@ -238,7 +238,7 @@ public class MyService extends Service {
 
         int choice_coordinator = -1;
         t1 = System.currentTimeMillis();
-        if (curFPS < Config.TargetFPS + 1)  {   // 因为帧率没有达到要求，触发了scheduler和coordinator
+        if (curFPS < Config.TargetFPS - 1)  {   // 因为帧率没有达到要求，触发了scheduler和coordinator
             response = ServerUtil.sendSocket("4");
             choice_coordinator = Integer.parseInt(response);
         } else if (choice == last_choice) {
