@@ -9,9 +9,6 @@ std::string get_package_name(const std::string& view) {
 }
 
 std::string get_view() {
-    std::vector<int> focus_index = {3, 6};
-    // std::vector<int> focus_index = {4, 8};
-
     std::string out = execute("dumpsys SurfaceFlinger | grep -i focus -A 10");
     std::vector<std::string> a;
     std::string view = "";
@@ -29,7 +26,7 @@ std::string get_view() {
     for (size_t index = 0; index < a.size(); index++) {
         std::cout << a[index] << std::endl;
         if (a[index][a[index].length() - 2] == '*') {
-            view = a[index - 1];
+            view = a[index - 2];
             break;
         }
     }
@@ -83,7 +80,9 @@ std::string get_pid_list(std::string package_name) {
 
 int State::init() {
     this->view = get_view();
+    std::cout << "View: " << this->view << std::endl;
     this->package_name = get_package_name(view);
+    std::cout << "Package : " << this->package_name << std::endl;
     this->pid_list = get_pid_list(package_name);
 
     std::ifstream file("/data/local/tmp/config.ini");

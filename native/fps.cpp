@@ -18,7 +18,6 @@ FPSGet::FPSGet(const std::string& view) {
     std::pair<unsigned long long, std::vector<unsigned long long>> frameData = getFrameData();
     unsigned long long refresh_period = frameData.first;
     std::vector<unsigned long long> timestamps = frameData.second;
-    unsigned long long base_timestamp = 0;
     for (unsigned long long timestamp : timestamps) {
         if (timestamp != 0) {
             base_timestamp = timestamp;
@@ -77,6 +76,7 @@ int FPSGet::getFPS() {
     if (view.empty()) {
         throw std::runtime_error("Fail to get current SurfaceFligner view");
     }
+    printf("1\n");
     std::vector<unsigned long long> adjusted_timestamps;
     for (unsigned long long seconds : frame_queue) {
         seconds -= base_timestamp;
@@ -85,7 +85,6 @@ int FPSGet::getFPS() {
         }
         adjusted_timestamps.push_back(seconds);
     }
-
     unsigned long long from_time = adjusted_timestamps.back() - 1e9;
     int fps_count = 0;
     for (unsigned long long seconds : adjusted_timestamps) {
@@ -93,6 +92,7 @@ int FPSGet::getFPS() {
             fps_count++;
         }
     }
+
     fps = std::min(fps_count, TARGET_FPS);
     return fps;
 }

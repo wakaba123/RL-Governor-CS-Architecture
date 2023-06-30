@@ -147,6 +147,7 @@ float get_gpu_util() {
 
 int get_big_cpu_freq() {
     const char* filename = "/sys/devices/system/cpu/cpufreq/policy4/scaling_cur_freq";
+    printf("%s\n", filename);
     FILE* file = fopen(filename, "r");
     if (file == NULL) {
         printf("Failed to open file: %s\n", filename);
@@ -232,8 +233,8 @@ int set_governor(std::string target_governor) {
 }
 
 int set_freq(int big_freq, int little_freq) {
-    const char* big_cpu = "/sys/devices/system/cpu/cpufreq/policy4/scaling_setspeed";
     const char* little_cpu = "/sys/devices/system/cpu/cpufreq/policy0/scaling_setspeed";
+    const char* big_cpu = "/sys/devices/system/cpu/cpufreq/policy4/scaling_setspeed";
 
     FILE* file_big = fopen(big_cpu, "w");
     FILE* file_little = fopen(little_cpu, "w");
@@ -363,10 +364,12 @@ int main(int argc, char* argv[]) {
             red();
             printf("flag 为 1, 是获取信息请求\n");
             reset();
-            // int sbig_freq = get_sbig_cpu_freq();
             int big_freq = get_big_cpu_freq();
+            printf("big_freq %d\n", big_freq);
             int little_freq = get_little_cpu_freq();
+            printf("little_freq %d\n", little_freq);
             int cur_fps = fps->getFPS();
+            printf("cur_fps %d\n", cur_fps);
             int mem = get_swap();
 
             update_cpu_utilization(&control, utilization);

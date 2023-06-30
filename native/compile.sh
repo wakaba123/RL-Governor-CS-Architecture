@@ -2,8 +2,8 @@ if [ $# != 2 ]; then
   echo "USAGE: ./comple.sh server.cpp server"
   exit -1;
 fi
-# NDK_PATH=$(which ndk-build | xargs dirname)
-NDK_PATH=/home/blues/Desktop/android-ndk-r25c
+NDK_PATH=$(which ndk-build | xargs dirname)
+#NDK_PATH=/home/blues/Desktop/android-ndk-r25c
 ANDROID_VERSION=$(adb shell getprop ro.build.version.sdk)
 NDK=$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android$ANDROID_VERSION-clang++ 
 

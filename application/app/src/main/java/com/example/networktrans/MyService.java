@@ -216,7 +216,7 @@ public class MyService extends Service {
 
         float[] input;
 
-        input = new float[]{(float) littleFreq / little_freq_list[little_freq_list.length - 1], (float) bigFreq / big_freq_list[big_freq_list.length - 1], (float) curFPS / Config.TargetFPS, (float) (littleUtil + bigUtil) / 8, Math.round(mem * 1.0 / 400000) / 10.0F};
+        input = new float[]{(float) littleFreq / little_freq_list[little_freq_list.length - 1], (float) bigFreq / big_freq_list[big_freq_list.length - 1], (float) curFPS / Config.TargetFPS, (float) (littleUtil + bigUtil) / 8, Math.round(mem * 1.0 / 100000) / 100.0F};
         Log.d(TAG, Arrays.toString(input));
 
         x.loadArray(input, new int[]{Config.ModelInputNum});

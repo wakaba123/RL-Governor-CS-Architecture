@@ -14,7 +14,11 @@ test_tools 为进行整机基准测试算法测试的代码
 
 如果要适配一台新设备/适配一个新应用
 
-1. native/server.cpp的set_freq函数需要根据需要修改2核或3核的频率，compile.sh中的编译器选择
+1. native 文件夹
+    1. /server.cpp的set_freq函数需要根据需要修改2核或3核的频率
+    2. compile.sh中的编译器路径修改
+    3. state.cpp中view的获取需要根据机型进行适配，有的机型focus前一行为view name,有的机型focus前两行为view name
+    4. 重新编译并上传server.cpp文件
 2. application中的Config.java中需要修改为对应机型支持的大小核频率，需要测试的view的名称
 3. application的assets文件夹添加对应的模型
     1. move h5 model in the native/ directory
