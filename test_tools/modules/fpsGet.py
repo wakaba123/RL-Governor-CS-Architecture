@@ -21,14 +21,9 @@ class FPSGet():
 				self.base_timestamp = timestamp
 				break
 		if self.base_timestamp == 0:
-			raise RuntimeError("Initial frame collect failed")	
+			raise RuntimeError("Initial frame collect failed")
 
 		self.last_timestamp = timestamps[-2]
-		
-		# missed = execute(' '.join(['dumpsys', 'SurfaceFlinger', '|', 'grep', 'missed']))
-		# self.last_total_missed = int(missed.splitlines()[0].split()[-1])
-		# self.last_hwc_missed = int(missed.splitlines()[1].split()[-1])
-		# self.last_gpu_missed = int(missed.splitlines()[2].split()[-1])
 		self.frame_queue = deque(maxlen=500)
 		self.frame_queue += [timestamp for timestamp in timestamps]
 		self.lock = Lock()

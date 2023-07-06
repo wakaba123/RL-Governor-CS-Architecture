@@ -11,7 +11,7 @@ def get_view():
     for index in range(len(a)):
         print(a[index])
         if a[index][-2] == '*':
-            view = a[index - 1]
+            view = a[index - 2]
             break
     view = view.strip()
     print(f'current view:{view}')
