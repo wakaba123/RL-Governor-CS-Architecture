@@ -4,19 +4,20 @@ import time
 import sys
 from termcolor import colored
 from threading import Thread
-sys.path.append('/home/blues/Desktop/networkTrans/test_tools/modules')
+sys.path.append('./modules')
 from datetime import datetime
-import simpleaudio as sa
 import numpy as np
 
 from modules.commandExec import * 
 from modules.fpsGet import FPSGet
+from modules.powerGet import PowerGet
 from modules.cpuControl import CPUControl, get_swap
 from modules.config import *
 from modules.getView import *
 from modules.get_power import *
 
 
+power_control = PowerGet()
 try:
     fps = FPSGet(view=get_view())
 except:
@@ -24,26 +25,27 @@ except:
 
 cpu = CPUControl(2)
 frame_data = []
+power_data = []
 
 def get_information(a):
     global fps
     try:
         frame = fps.get_fps()
+        power = power_control.get_power()
     except:
         pass
         return None
-    #if frame < 30:
-        #frame = 59 
     if frame < 60:
         print(colored("Frame: {}".format(frame), "red"))
     frame_data.append(frame)
+    power_data.append(power)
     # sbig_clock = a.get_sbig_cpu_clock()
     big_clock = a.get_big_cpu_clock()
     little_clock = a.get_little_cpu_clock()
     little_util, big_util = a.get_cpu_util_time()
     mem = get_swap()
-    print("{}, {}, {}, {}, {}, {}".format(frame, little_util, big_util, little_clock, big_clock, mem))
-    return [frame, little_util, big_util, little_clock, big_clock,  mem]
+    print("{}, {}, {}, {}, {}, {}, {}".format(frame, power, little_util, big_util, little_clock, big_clock, mem))
+    return [frame, little_util, big_util, little_clock, big_clock, mem, power]
 
 
 
@@ -64,7 +66,7 @@ execute('am force-stop com.example.anomalyapp')
 
 testline = []
 
-with open(test_file_path + "testline{}.csv".format(version),"w") as f:
+with open(test_file_path + "testline{}_stress.csv".format(version),"w") as f:
         writer = csv.writer(f)
         writer.writerow(things)
 
@@ -78,6 +80,11 @@ fps.while_flag = True
 fps_thread = Thread(target=fps.get_frame_data_thread, args=())
 fps_thread.start()
 
+power_control.while_flag = True
+power_control_thread = Thread(target=power_control.get_power_data_thread, args=())
+power_control_thread.start()
+
+'''
 flag = 1
 begin_battery1 = get_charge_count()
 begin_battery2 = begin_battery1
@@ -90,6 +97,7 @@ while flag:
     time.sleep(1)
 
 battery1 = begin_battery2
+'''
 
 execute('am start-foreground-service -n "com.example.networktrans/com.example.networktrans.MyService"')  # 启动我们的算法
 
@@ -104,7 +112,7 @@ while True:
         continue
 
     t = t + 1
-    with open(test_file_path + "testline{}.csv".format(version),"a+") as f:
+    with open(test_file_path + "testline{}_stress.csv".format(version),"a+") as f:
         writer = csv.writer(f)
         writer.writerow(m)
         
@@ -118,7 +126,7 @@ while True:
     if t == mem_time:
         print("*******************************MEM TIME*********************************")
         execute('kill -9 $(pgrep -x stress)')
-        execute_bg('/data/local/tmp/stress --vm 13 --vm-bytes 256M --vm-keep')
+        execute_bg('/data/local/tmp/stress --vm 8 --vm-bytes 256M --vm-keep')
 
     if t == io_time:
         print("*******************************IO  TIME*********************************")
@@ -130,31 +138,26 @@ while True:
         execute('kill -9 $(pgrep -x stress)')
 
     if t > over_time:
-        if over_last_charge != over_charge:
-            if over_last_charge != 0:
-                break
-            else:
-                over_last_charge = over_charge 
-
-        over_charge = get_charge_count()
-        print(over_charge)
+        break
 
 
-battery2 = over_charge
+#battery2 = over_charge
 
-
-fps.while_flag = False
-# battery2 = get_charge_count()
 
 now2 = datetime.now()
-cost = int(battery2) - int(battery1)
+
+fps.while_flag = False
+power_control.while_flag = False
+
+avg_power = np.mean(power_data)
 avg_fps = np.mean(frame_data)
-print(cost)
-second = (now2-now1).total_seconds()
-avg_cost = cost / second
+
+second = (now2 - now1).total_seconds()
 
 print(frame_data)
+print("duration : {}".format(second))
 print("average FPS : {}".format(sum(frame_data) / len(frame_data)))
+print("average Power : {}".format(sum(power_data) / len(power_data)))
 
 # execute('am force-stop com.ss.android.ugc.aweme') 
 execute('am force-stop com.example.networktrans') 
@@ -165,19 +168,4 @@ execute('am stopservice -n "com.example.anomalyapp/com.example.anomalyapp.Comput
 execute('am stopservice -n "com.example.anomalyapp/com.example.anomalyapp.DownloadService"')
 execute('am stopservice -n "com.example.anomalyapp/com.example.anomalyapp.LoadImageService"')
 
-os.system(f'echo test,{cost},{avg_fps},{second},{avg_cost} >> {test_file_path}record.csv')
-
-def play_notification_sound():
-    # 指定音频文件的路径（例如WAV格式）
-    audio_file_path = './piano.wav'
-
-    # 加载音频文件
-    wave_obj = sa.WaveObject.from_wave_file(audio_file_path)
-
-    # 播放音频文件
-    play_obj = wave_obj.play()
-
-    # 等待音频播放完毕
-    play_obj.wait_done()
-
-play_notification_sound()
+os.system(f'echo test,{avg_fps},{avg_power},{second} >> {test_file_path}record.csv')

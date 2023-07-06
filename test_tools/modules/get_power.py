@@ -19,7 +19,8 @@ def get_charge_cpu():
 def get_charge_count():
     out = execute('dumpsys battery')
     a = out.split('\n')
-    return  a[6][18:]
+    #return  a[6][18:]
+    return  a[-10][18:]
 
 def get_power2():
     output = subprocess.check_output('adb shell dumpsys batterystats | grep -A 15 "since last charge"', shell = True)
