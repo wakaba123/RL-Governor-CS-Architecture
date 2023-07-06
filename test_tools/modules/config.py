@@ -10,7 +10,7 @@ over_time = 8 * base
 test_file_path = "tests/"
 
 #things = ['fps', 'little', 'big','lclock','bclock','mem']
-things = ['fps', 'little', 'big','lclock','bclock','mem']
+things = ['fps', 'little', 'big', 'lclock', 'bclock', 'mem', 'power']
 
 start_douyin = False
 record_battery = False
