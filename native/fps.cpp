@@ -76,7 +76,7 @@ int FPSGet::getFPS() {
     if (view.empty()) {
         throw std::runtime_error("Fail to get current SurfaceFligner view");
     }
-    printf("1\n");
+//    printf("1\n");
     std::vector<unsigned long long> adjusted_timestamps;
     for (unsigned long long seconds : frame_queue) {
         seconds -= base_timestamp;

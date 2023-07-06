@@ -323,6 +323,7 @@ int main(int argc, char* argv[]) {
 
     double little_util;
     double big_util;
+    Scheduler * scheduler = new Scheduler(pid_list, big_freq_list, little_freq_list);
 
     // 接受客户端连接请求
     while (1) {
@@ -364,12 +365,9 @@ int main(int argc, char* argv[]) {
             red();
             printf("flag 为 1, 是获取信息请求\n");
             reset();
-            int big_freq = get_big_cpu_freq();
-            printf("big_freq %d\n", big_freq);
-            int little_freq = get_little_cpu_freq();
-            printf("little_freq %d\n", little_freq);
+            big_freq = get_big_cpu_freq();
+            little_freq = get_little_cpu_freq();
             int cur_fps = fps->getFPS();
-            printf("cur_fps %d\n", cur_fps);
             int mem = get_swap();
 
             update_cpu_utilization(&control, utilization);
@@ -384,6 +382,10 @@ int main(int argc, char* argv[]) {
                     big_util += utilization[i];
                 }
             }
+
+            printf("cur_fps %d\n", cur_fps);
+            printf("big_freq %d big_util %f\n", big_freq, big_util);
+            printf("little_freq %d little_util %f\n", little_freq, little_util);
 
             std::string data = std::to_string(big_freq) + " " +
                                std::to_string(little_freq) + " " +
@@ -407,19 +409,27 @@ int main(int argc, char* argv[]) {
             std::string data = "0";
             send(client_fd, data.c_str(), data.length(), 0);
             close(client_fd);
+            delete scheduler;
             break;
         } else if (flag == 4) {
+            red();
             printf("flag 为 4, 因为帧率没有达到，触发scheduler和coordinator \n");
-            Scheduler scheduler(pid_list, big_freq_list, little_freq_list);
-            std::vector<double> commu_info = scheduler.schdule(big_freq, little_freq);
+            reset();
+            printf("big_freq %d\n", big_freq);
+            printf("little_freq %d\n", little_freq);
+            std::vector<double> commu_info = scheduler->schedule(big_freq, little_freq);
+            printf("scheduler decision: big {%f, %f}  little {%f, %f}\n", commu_info[2], commu_info[3], commu_info[4], commu_info[5]);
             std::vector<double> temp = coordinator.coordinate(commu_info, big_util, little_util, big_freq, little_freq);
+            printf("Coordinator decision: big {%f, %f}  little {%f, %f}\n", temp[0], temp[1], temp[2], temp[3]);
 
             int choice = (int)temp[1] * 3 + (int)temp[3];
             std::string data = std::to_string(choice);
             send(client_fd, data.c_str(), data.length(), 0);
 
         } else if (flag == 5) {
+            red();
             printf("flag为5, 检测当前页面的view是否为app要求的view\n");
+            reset();
             char stringValue[40];
             sscanf(buffer, "%d%s", &flag, stringValue);
             std::string strValue(stringValue);
@@ -438,6 +448,7 @@ int main(int argc, char* argv[]) {
                 set_governor("userspace");
             }
 
+            scheduler = new Scheduler(pid_list, big_freq_list, little_freq_list);
             std::string data = std::to_string(ret);
             send(client_fd, data.c_str(), data.length(), 0);
         }

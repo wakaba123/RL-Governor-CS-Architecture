@@ -12,7 +12,6 @@
 
 
 int set_cpu_mask(pid_t pid, int from, int end) {
-    return 1;
     cpu_set_t cpuset;
     CPU_ZERO(&cpuset);  // 初始化 CPU 集合
 
@@ -28,11 +27,11 @@ int set_cpu_mask(pid_t pid, int from, int end) {
 }
 
 int set_cpu_mask_big(pid_t pid) {
-    return set_cpu_mask(pid, 0, 3);
+    return set_cpu_mask(pid, 4, 7);
 }
 
 int set_cpu_mask_little(pid_t pid) {
-    return set_cpu_mask(pid, 4, 7);
+    return set_cpu_mask(pid, 0, 3);
 }
 
 int set_cpu_mask_all(pid_t pid) {
@@ -96,6 +95,12 @@ std::string replace(const std::string& str, const std::string& oldStr, const std
 
 Scheduler::Scheduler(std::string tid_list_str, std::vector<int>& big_freq_list_in, std::vector<int>& little_freq_list_in) {
     this->tid_list_str = tid_list_str;
+    /*
+    all_pmu_data.resize(10);
+    main_pmu_data.resize(10);
+    sf_pmu_data.resize(10);
+    render_pmu_data.resize(10);
+    */
     std::string delimiter = ",";
     size_t pos = 0;
     while ((pos = tid_list_str.find(delimiter)) != std::string::npos) {
@@ -112,10 +117,6 @@ Scheduler::Scheduler(std::string tid_list_str, std::vector<int>& big_freq_list_i
     this->big_freq_list = big_freq_list_in;
     this->little_freq_list = little_freq_list_in;
 
-    all_pmu_data.resize(10);
-    main_pmu_data.resize(10);
-    sf_pmu_data.resize(10);
-    render_pmu_data.resize(10);
 
     for (int i = 0; i < thread_num; i++) {
         set_cpu_mask_all(tid_list[i]);
@@ -171,7 +172,19 @@ void getEventCounter(pid_t pid, PerfEventType eventType, long long& counter) {
 }
  
 
-std::vector<double> Scheduler::schdule(int big_current_freq, int little_current_freq) {
+std::vector<double> Scheduler::schedule(int big_current_freq, int little_current_freq) {
+    std::vector<double> priority_arr;
+    std::vector<std::vector<int>> main_pmu_data;
+    std::vector<std::vector<int>> render_pmu_data;
+    std::vector<std::vector<int>> sf_pmu_data;
+    std::vector<std::vector<int>> all_pmu_data;
+    std::vector<double> commu_info;
+
+    all_pmu_data.resize(10);
+    main_pmu_data.resize(10);
+    sf_pmu_data.resize(10);
+    render_pmu_data.resize(10);
+
     big_scale = 0;
     little_scale = 0;
     big_scale_freq_idx = 0;
@@ -185,7 +198,7 @@ std::vector<double> Scheduler::schdule(int big_current_freq, int little_current_
     std::vector<std::thread> threads;
 
     // 创建线程获取每个PID的计数器值
-    for (size_t i = 0; i < pidList.size() * 2; ++i) {
+    for (size_t i = 0; i < pidList.size(); ++i) {
         threads.emplace_back([&taskClockList, &instructionsList, i, pidList]() {
             getEventCounter(pidList[i], TASK_CLOCK, taskClockList[i]);
             // getEventCounter(pidList[i], INSTRUCTIONS, instructionsList[i]);
@@ -203,10 +216,9 @@ std::vector<double> Scheduler::schdule(int big_current_freq, int little_current_
 
     // 打印结果
     for (size_t i = 0; i < pidList.size(); ++i) {
-        all_pmu_data[i].push_back(taskClockList[i]/100000);
+        all_pmu_data[i].push_back(taskClockList[i] / 1000000);
         all_pmu_data[i].push_back(instructionsList[i]);
     }
-
 
     for (int i1 = 0; i1 < thread_num; i1++) {
         priority_arr.push_back(all_pmu_data[i1][0] / 1000.0);
@@ -223,7 +235,6 @@ std::vector<double> Scheduler::schdule(int big_current_freq, int little_current_
             big_priority += priority_arr[i1];
         }
     }
-
     std::vector<double> a = priority_arr;
     std::vector<int> sort_index = argsort(a);
     // std::reverse(sort_index.begin(), sort_index.end());
@@ -235,16 +246,23 @@ std::vector<double> Scheduler::schdule(int big_current_freq, int little_current_
 
     for (int i = 0; i < sort_index.size(); i++) {
         int index = sort_index[i];
-        int task_clock = all_pmu_data[index][0];
+        double task_clock = all_pmu_data[index][0];
         int inst = all_pmu_data[index][1];
         int big_scale_freq = 0;
         int little_scale_freq = 0;
+        printf("----------------------------------------------------\n");
+        printf("index: %d\n", index);
+        printf("position_bit[index] : %d\n", position_bit[index]);
+        printf("inst: %d tc: %f \n", inst,  task_clock);
+        printf("inst : %d inst_min : %d\n", inst, inst_min[index]);
+        printf("task_clock : %f tc_min_big: %d, tc_min_little: %d\n", task_clock, task_clock_min_big[index], task_clock_min_little[index]);
+        printf("task_clock : %f tc_max_big: %d, tc_max_little: %d\n", task_clock, task_clock_max_big[index], task_clock_max_little[index]);
 
         if (inst > inst_min[index]) {
             if (position_bit[index] == 1 && task_clock < task_clock_min_big[index]) {
                 big_scale_freq = big_freq_list[big_freq_list.size() - 1];
                 for (int j = big_freq_list.size() - 1; j >= 0; j--) {
-                    int big_freq = big_freq_list[index];
+                    double big_freq = big_freq_list[j];
                     if (big_freq / big_current_freq < task_clock / task_clock_min_big[index]) {
                         big_scale_freq = big_freq;
                         break;
@@ -255,16 +273,19 @@ std::vector<double> Scheduler::schdule(int big_current_freq, int little_current_
                     big_priority -= priority_arr[index];
                     position_bit[index] = 0;
                     set_cpu_mask_little(tid_list[index]);
+                    printf("\nbig -> LITTLE\n");
                     break;
                 } else {
+                    printf("\ntc low -> big freq down\n");
                     big_scale_arr[i] = -1;
                     big_scale_freq_arr[i] = big_scale_freq;
                 }
             } else if (position_bit[index] == 0 && task_clock < task_clock_min_little[index]) {
                 little_scale_arr[i] = -1;
+                printf("\ntc low -> little freq down\n");
                 little_scale_freq = little_freq_list[little_freq_list.size() - 1];
                 for (int j = little_freq_list.size() - 1; j >= 0; j--) {
-                    int little_freq = little_freq_list[j];
+                    double little_freq = little_freq_list[j];
                     if (little_freq / little_current_freq < task_clock / task_clock_min_little[index]) {
                         little_scale_freq = little_freq;
                         break;
@@ -277,8 +298,9 @@ std::vector<double> Scheduler::schdule(int big_current_freq, int little_current_
                 }
             } else if (position_bit[index] == 1 && task_clock > task_clock_max_big[index]) {
                 big_scale_arr[i] = 1;
+                printf("\ntc exceed -> big freq up\n");
                 big_scale_freq = big_freq_list[0];
-                for (const int big_freq : big_freq_list) {
+                for (const double big_freq : big_freq_list) {
                     if (big_freq / big_current_freq > task_clock / task_clock_max_big[index]) {
                         big_scale_freq = big_freq;
                         break;
@@ -291,7 +313,7 @@ std::vector<double> Scheduler::schdule(int big_current_freq, int little_current_
                 }
             } else if (position_bit[index] == 0 && task_clock < task_clock_min_little[index]) {
                 little_scale_freq = little_freq_list[0];
-                for (const int little_freq : little_freq_list) {
+                for (const double little_freq : little_freq_list) {
                     if (little_freq / little_current_freq > task_clock / task_clock_max_little[index]) {
                         little_scale_freq = little_freq;
                         break;
@@ -302,16 +324,18 @@ std::vector<double> Scheduler::schdule(int big_current_freq, int little_current_
                     little_priority -= priority_arr[index];
                     position_bit[index] = 1;
                     set_cpu_mask_big(tid_list[index]);
+                    printf("\nLITTLE -> big\n");
                     break;
                 } else {
+                    printf("\ntc exceed -> little freq up\n");
                     little_scale_arr[i] = 1;
                     little_scale_freq_arr[i] = little_scale_freq;
                 }
             }
         } else if (inst < inst_min[index]) {
-            if (position_bit[index] == 0) {
+            if (position_bit[index] == 0) {         //LITTLE
                 little_scale_freq = little_freq_list[0];
-                for (const int little_freq : little_freq_list) {
+                for (const double little_freq : little_freq_list) {
                     if (little_freq / little_current_freq > inst_min[index] / inst) {
                         little_scale_freq = little_freq;
                         break;
@@ -322,15 +346,18 @@ std::vector<double> Scheduler::schdule(int big_current_freq, int little_current_
                     little_priority -= priority_arr[index];
                     position_bit[index] = 1;
                     set_cpu_mask_big(tid_list[index]);
+                    printf("\nLITTLE -> big\n");
                     break;
                 } else {
+                    printf("\ninst low -> little freq up\n");
                     little_scale_arr[i] = 1;
                     little_scale_freq_arr[i] = little_scale_freq;
                 }
             } else {
                 big_scale_arr[i] = 1;
+                printf("\ninst low -> big freq up\n");
                 big_scale_freq = big_freq_list[0];
-                for (const int big_freq : big_freq_list) {
+                for (const double big_freq : big_freq_list) {
                     if (big_freq / big_current_freq > inst_min[index] / inst) {
                         big_scale_freq = big_freq;
                         break;
