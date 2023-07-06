@@ -1,6 +1,6 @@
 import argparse
 import sys
-sys.path.append('/home/blues/Desktop/networkTrans/test_tools/modules')
+sys.path.append('./modules')
 from modules.commandExec import execute
 from modules.fpsGet import FPSGet
 from modules.cpuControl import CPUControl
