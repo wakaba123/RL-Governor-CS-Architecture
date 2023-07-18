@@ -1,7 +1,7 @@
 import os
 
 version = 1
-base =  10
+base =  50
 cpu_time = 2 * base 
 mem_time = 4 * base
 io_time = 6 * base

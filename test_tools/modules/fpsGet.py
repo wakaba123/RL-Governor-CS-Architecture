@@ -44,11 +44,17 @@ class FPSGet():
 				self.frame_queue += [timestamp for timestamp in new_timestamps if timestamp > self.last_timestamp]
 			if len(new_timestamps):
 					self.last_timestamp = new_timestamps[-1]
-			
 
+	def get_measured_fps(self):
+		results = execute(' '.join(['cat', '/sys/class/drm/sde-crtc-0/measured_fps']))
+		results = results.split(":")
+		fps_count = float(results[3])
+		self.fps = min(fps_count, 60)
+		return self.fps
+		#print("{} --- {}",fps, self.fps)
+		#return self.fps
 
 	def get_fps(self):
-		time.sleep(1)
 		if self.view is None:
 			raise RuntimeError("Fail to get current SurfaceFligner view")
 		old_timestamps = []

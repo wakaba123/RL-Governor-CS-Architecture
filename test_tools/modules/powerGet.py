@@ -26,7 +26,6 @@ class PowerGet:
 
 	def get_power_data_thread(self):
 		while self.while_flag:
-			time.sleep(0.5)
 			power = self.get_power_data(2500)
 			with self.lock:
 				self.power_queue += [power]

@@ -19,9 +19,9 @@ view = get_view()
 
 power_control = PowerGet()
 try:
-    fps = FPSGet(view=view)
+	fps = FPSGet(view=view)
 except:
-    print('check your view!')
+	print('check your view!')
 
 
 cpu = CPUControl(2)
@@ -29,23 +29,23 @@ frame_data = []
 power_data = []
 
 def get_information(a):
-    global fps
-    try:
-        frame = fps.get_fps()
-        power = power_control.get_power()
-    except:
-        pass
-        return None
-    if frame < 60:
-        print(colored("Frame: {}".format(frame), "red"))
-    frame_data.append(frame)
-    power_data.append(power)
-    big_clock = a.get_big_cpu_clock()
-    little_clock = a.get_little_cpu_clock()
-    little_util, big_util = a.get_cpu_util_time()
-    mem = get_swap()
-    print("{}, {}, {}, {}, {}, {}, {}".format(frame, power, little_util, big_util, little_clock, big_clock, mem))
-    return [frame, little_util, big_util, little_clock, big_clock, mem, power]
+	global fps
+	try:
+		frame = fps.get_fps()
+		power = power_control.get_power()
+	except:
+		pass
+		return None
+	if frame < 60:
+		print(colored("Frame: {}".format(frame), "red"))
+	frame_data.append(frame)
+	power_data.append(power)
+	big_clock = a.get_big_cpu_clock()
+	little_clock = a.get_little_cpu_clock()
+	little_util, big_util = a.get_cpu_util_time()
+	mem = get_swap()
+	print("{}, {}, {}, {}, {}, {}, {}".format(frame, power, little_util, big_util, little_clock, big_clock, mem))
+	return [frame, little_util, big_util, little_clock, big_clock, mem, power]
 
 
 ######################
@@ -68,8 +68,8 @@ baseline = []
 t = 0
 
 with open(test_file_path + "baseline{}_stress.csv".format(version),"w") as f:
-       writer = csv.writer(f)
-       writer.writerow(things)
+	   writer = csv.writer(f)
+	   writer.writerow(things)
 # execute('monkey -p com.ss.android.ugc.aweme -c android.intent.category.LAUNCHER 1') # 启动抖音
 
 ##### !!!!! important here !!!!!!! ##########
@@ -86,68 +86,97 @@ power_control_thread.start()
 
 '''
 while flag:
-    if begin_battery2 != begin_battery1:
-        break
-    begin_battery2 = get_charge_count()
-    print(begin_battery2)
-    time.sleep(1)
+	if begin_battery2 != begin_battery1:
+		break
+	begin_battery2 = get_charge_count()
+	print(begin_battery2)
+	time.sleep(1)
 
 battery1 = begin_battery2
 '''
 
-t1 = datetime.now()
+now1 = datetime.now()
 
 
 while True:
-    print(t)
-    m = get_information(cpu)
-    if m is None:
-        continue
+	print(t)
+	m = get_information(cpu)
+	if m is None:
+		continue
 
-    t = t + 1
+	t = t + 1
 
-    with open(test_file_path + "baseline{}_stress.csv".format(version),"a+") as f:
-        writer = csv.writer(f)
-        writer.writerow(m)
-        
+	with open(test_file_path + "baseline{}_stress.csv".format(version),"a+") as f:
+		writer = csv.writer(f)
+		writer.writerow(m)
+		
 
-    if t == cpu_time:
-        print("*******************************CPU TIME*********************************")
-        execute('kill -9 $(pgrep -x stress)')
-        execute_bg('/data/local/tmp/stress --cpu 32')
+	if t == cpu_time:
+		cpu_now = datetime.now()
+		print("*******************************CPU TIME*********************************")
+		execute('kill -9 $(pgrep -x stress)')
+		execute_bg('/data/local/tmp/stress --cpu 32')
 
 
-    if t == mem_time:
-        print("*******************************MEM TIME*********************************")
-        execute('kill -9 $(pgrep -x stress)')
-        execute_bg('/data/local/tmp/stress --vm 8 --vm-bytes 256M --vm-keep')
+	if t == mem_time:
+		mem_now = datetime.now()
+		print("*******************************MEM TIME*********************************")
+		execute('kill -9 $(pgrep -x stress)')
+		execute_bg('/data/local/tmp/stress --vm 8 --vm-bytes 256M --vm-keep')
 
-    if t == io_time:
-        print("*******************************IO  TIME*********************************")
-        execute('kill -9 $(pgrep -x stress)')
-        execute_bg('/data/local/tmp/stress --io 8')
+	if t == io_time:
+		io_now = datetime.now()
+		print("*******************************IO  TIME*********************************")
+		execute('kill -9 $(pgrep -x stress)')
+		execute_bg('/data/local/tmp/stress --io 8')
 
-    if t == over_time:
-        print("*******************************OVER TIME*********************************")
-        execute('kill -9 $(pgrep -x stress)')
+	if t == over_time:
+		over_now = datetime.now()
+		print("*******************************OVER TIME*********************************")
+		execute('kill -9 $(pgrep -x stress)')
 
-    if t > over_time:
-        break
+	if t > over_time:
+		break
 
-t2 = datetime.now()
+now2 = datetime.now()
 fps.while_flag = False
 power_control.while_flag = False
 
+
 avg_power = np.mean(power_data)
 avg_fps = np.mean(frame_data)
+normal_avg_power = np.mean(power_data[0:cpu_time])
+normal_avg_fps = np.mean(frame_data[0:cpu_time])
+cpu_avg_power = np.mean(power_data[cpu_time:mem_time])
+cpu_avg_fps = np.mean(frame_data[cpu_time:mem_time])
+mem_avg_power = np.mean(power_data[mem_time:io_time])
+mem_avg_fps = np.mean(frame_data[mem_time:io_time])
+io_avg_power = np.mean(power_data[io_time:over_time])
+io_avg_fps = np.mean(frame_data[io_time:over_time])
 
-second = (t2-t1).total_seconds()
+second = (now2 - now1).total_seconds()
+normal_second = (cpu_now - now1).total_seconds()
+cpu_second = (mem_now - cpu_now).total_seconds()
+mem_second = (io_now - mem_now).total_seconds()
+io_second = (over_now - io_now).total_seconds()
+
+fps_50count = 0
+fps_55count = 0
+for fps in frame_data:
+	if fps < 50:
+		fps_50count = fps_50count + 1
+	if fps < 55:
+		fps_55count = fps_55count + 1
+
+
 
 print(frame_data)
 print("duration : {}".format(second))
-print("average FPS : {}".format(sum(frame_data) / len(frame_data)))
+print("normal: {} cpu: {} mem: {} io: {}".format(normal_second, cpu_second, mem_second, io_second))
+print("average FPS : {} min FPS : {} count (fps<50) : {} (fps<55) : {}".format(np.mean(frame_data), np.min(frame_data), fps_50count, fps_55count))
+print("normal: {} cpu: {} mem: {} io: {}".format(normal_avg_fps, cpu_avg_fps, mem_avg_fps, io_avg_fps))
 print("average Power : {}".format(sum(power_data) / len(power_data)))
-
+print("normal: {} cpu: {} mem: {} io: {}".format(normal_avg_power, cpu_avg_power, mem_avg_power, io_avg_power))
 
 os.system(f'echo base,{avg_fps},{avg_power},{second} >> {test_file_path}record.csv')  #把记录写到record.csv中
 
