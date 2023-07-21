@@ -12,3 +12,4 @@ $NDK $1 execute.cpp fps.cpp scheduler.cpp coordinator.cpp state.cpp -static-libs
 
 echo "adb push $2 /data/local/tmp"
 adb push $2 /data/local/tmp
+adb push config.ini /data/local/tmp

@@ -19,34 +19,35 @@ from modules.get_power import *
 
 power_control = PowerGet()
 try:
-	fps = FPSGet(view=get_view())
+    fps = FPSGet(view=get_view())
 except:
-	print('check your view!')
+    print('check your view!')
 
 cpu = CPUControl(2)
 frame_data = []
 power_data = []
 
-def get_information(a):
-	global fps
-	try:
-		frame = fps.get_fps()
-		power = power_control.get_power()
-	except:
-		pass
-		return None
-	if frame < 60:
-		print(colored("Frame: {}".format(frame), "red"))
-	frame_data.append(frame)
-	power_data.append(power)
-	# sbig_clock = a.get_sbig_cpu_clock()
-	big_clock = a.get_big_cpu_clock()
-	little_clock = a.get_little_cpu_clock()
-	little_util, big_util = a.get_cpu_util_time()
-	mem = get_swap()
-	print("{}, {}, {}, {}, {}, {}".format(frame, little_util, big_util, little_clock, big_clock, mem))
-	return [frame, little_util, big_util, little_clock, big_clock, mem, power]
 
+def get_information(a):
+    global fps
+    try:
+        frame = fps.get_fps()
+        power = power_control.get_power()
+    except:
+        pass
+        return None
+    if frame < 60:
+        print(colored("Frame: {}".format(frame), "red"))
+    frame_data.append(frame)
+    power_data.append(power)
+    # sbig_clock = a.get_sbig_cpu_clock()
+    big_clock = a.get_big_cpu_clock()
+    little_clock = a.get_little_cpu_clock()
+    little_util, big_util = a.get_cpu_util_time()
+    mem = get_swap()
+    print("{}, {}, {}, {}, {}, {}".format(
+        frame, little_util, big_util, little_clock, big_clock, mem))
+    return [frame, little_util, big_util, little_clock, big_clock, mem, power]
 
 
 execute('echo "schedutil" >  /sys/devices/system/cpu/cpufreq/policy0/scaling_governor')  # 恢复为自带调频
@@ -54,21 +55,22 @@ execute('echo "schedutil" >  /sys/devices/system/cpu/cpufreq/policy4/scaling_gov
 
 
 execute('am kill-all')  # 清除所有后台应用
-execute('am stopservice -n "com.example.anomalyapp/com.example.anomalyapp.ComputeService"')  # 关闭的service
+# 关闭的service
+execute('am stopservice -n "com.example.anomalyapp/com.example.anomalyapp.ComputeService"')
 
 execute('am stopservice -n "com.example.anomalyapp/com.example.anomalyapp.DownloadService"')
 execute('am stopservice -n "com.example.anomalyapp/com.example.anomalyapp.LoadImageService"')
 execute('am stop-service -n "com.example.networktrans/com.example.networktrans.MyService"')
 
 execute('am force-stop com.example.networktrans')  # 关闭app
-execute('am force-stop com.example.anomalyapp') 
+execute('am force-stop com.example.anomalyapp')
 
 
 testline = []
 
-with open(test_file_path + "testline{}_test.csv".format(version),"w") as f:
-		writer = csv.writer(f)
-		writer.writerow(things)
+with open(test_file_path + "testline{}_test.csv".format(version), "w") as f:
+    writer = csv.writer(f)
+    writer.writerow(things)
 
 execute('dumpsys batterystats --enable full-wake-history')  # 清除之前的电源信息
 execute('dumpsys batterystats --reset')
@@ -81,7 +83,8 @@ fps_thread = Thread(target=fps.get_frame_data_thread, args=())
 fps_thread.start()
 
 power_control.while_flag = True
-power_control_thread = Thread(target=power_control.get_power_data_thread, args=())
+power_control_thread = Thread(
+    target=power_control.get_power_data_thread, args=())
 power_control_thread.start()
 
 '''
@@ -106,46 +109,47 @@ time.sleep(3)
 
 now1 = datetime.now()
 while True:
-	print(t)
-	m = get_information(cpu)
-	if m is None:
-		continue
+    print(t)
+    m = get_information(cpu)
+    if m is None:
+        continue
 
-	t = t + 1
-	with open(test_file_path + "testline{}_test.csv".format(version),"a+") as f:
-		writer = csv.writer(f)
-		writer.writerow(m)
-		
+    t = t + 1
+    with open(test_file_path + "testline{}_test.csv".format(version), "a+") as f:
+        writer = csv.writer(f)
+        writer.writerow(m)
 
-	if t == cpu_time:
-		cpu_now = datetime.now()
-		print("*******************************CPU TIME*********************************")
-		execute('am force-stop com.example.anomalyapp') 
-		execute('am start-foreground-service -n "com.example.anomalyapp/com.example.anomalyapp.ComputeService"')
+    if t == cpu_time:
+        cpu_now = datetime.now()
+        print("*******************************CPU TIME*********************************")
+        execute('am force-stop com.example.anomalyapp')
+        execute(
+            'am start-foreground-service -n "com.example.anomalyapp/com.example.anomalyapp.ComputeService"')
+
+    if t == mem_time:
+        mem_now = datetime.now()
+        print("*******************************MEM TIME*********************************")
+        execute('am force-stop com.example.anomalyapp')
+        execute(
+            'am start-foreground-service -n "com.example.anomalyapp/com.example.anomalyapp.DownloadService"')
+
+    if t == io_time:
+        io_now = datetime.now()
+        print("*******************************IO  TIME*********************************")
+        execute('am force-stop com.example.anomalyapp')
+        execute(
+            'am start-foreground-service -n "com.example.anomalyapp/com.example.anomalyapp.LoadImageService"')
+
+    if t == over_time:
+        over_now = datetime.now()
+        print("*******************************OVER TIME*********************************")
+        execute('am force-stop com.example.anomalyapp')
+
+    if t > over_time:
+        break
 
 
-	if t == mem_time:
-		mem_now = datetime.now()
-		print("*******************************MEM TIME*********************************")
-		execute('am force-stop com.example.anomalyapp') 
-		execute('am start-foreground-service -n "com.example.anomalyapp/com.example.anomalyapp.DownloadService"')
-
-	if t == io_time:
-		io_now = datetime.now()
-		print("*******************************IO  TIME*********************************")
-		execute('am force-stop com.example.anomalyapp') 
-		execute('am start-foreground-service -n "com.example.anomalyapp/com.example.anomalyapp.LoadImageService"')
-
-	if t == over_time:
-		over_now = datetime.now()
-		print("*******************************OVER TIME*********************************")
-		execute('am force-stop com.example.anomalyapp') 
-
-	if t > over_time:
-		break
-
-
-#battery2 = over_charge
+# battery2 = over_charge
 
 now2 = datetime.now()
 
@@ -171,30 +175,33 @@ io_second = (over_now - io_now).total_seconds()
 fps_50count = 0
 fps_55count = 0
 for fps in frame_data:
-	if fps < 50:
-		fps_50count = fps_50count + 1
-	if fps < 55:
-		fps_55count = fps_55count + 1
-
+    if fps < 50:
+        fps_50count = fps_50count + 1
+    if fps < 55:
+        fps_55count = fps_55count + 1
 
 
 print(frame_data)
 print("duration : {}".format(second))
-print("normal: {} cpu: {} mem: {} io: {}".format(normal_second, cpu_second, mem_second, io_second))
-print("average FPS : {} min FPS : {} count (fps<50) : {} (fps<55) : {}".format(np.mean(frame_data), np.min(frame_data), fps_50count, fps_55count))
-print("normal: {} cpu: {} mem: {} io: {}".format(normal_avg_fps, cpu_avg_fps, mem_avg_fps, io_avg_fps))
+print("normal: {} cpu: {} mem: {} io: {}".format(
+    normal_second, cpu_second, mem_second, io_second))
+print("average FPS : {} min FPS : {} count (fps<50) : {} (fps<55) : {}".format(
+    np.mean(frame_data), np.min(frame_data), fps_50count, fps_55count))
+print("normal: {} cpu: {} mem: {} io: {}".format(
+    normal_avg_fps, cpu_avg_fps, mem_avg_fps, io_avg_fps))
 print("average Power : {}".format(sum(power_data) / len(power_data)))
-print("normal: {} cpu: {} mem: {} io: {}".format(normal_avg_power, cpu_avg_power, mem_avg_power, io_avg_power))
+print("normal: {} cpu: {} mem: {} io: {}".format(
+    normal_avg_power, cpu_avg_power, mem_avg_power, io_avg_power))
 
 
-# execute('am force-stop com.ss.android.ugc.aweme') 
-execute('am force-stop com.example.networktrans') 
-execute('am force-stop com.example.anomalyapp') 
+# execute('am force-stop com.ss.android.ugc.aweme')
+execute('am force-stop com.example.networktrans')
+execute('am force-stop com.example.anomalyapp')
 
 execute('am stopservice -n "com.example.networktrans/com.example.networktrans.MyService"')
 execute('am stopservice -n "com.example.anomalyapp/com.example.anomalyapp.ComputeService"')
 execute('am stopservice -n "com.example.anomalyapp/com.example.anomalyapp.DownloadService"')
 execute('am stopservice -n "com.example.anomalyapp/com.example.anomalyapp.LoadImageService"')
 
-os.system(f'echo test,{avg_fps},{avg_power},{second} >> {test_file_path}record.csv')
-
+os.system(
+    f'echo test,{avg_fps},{avg_power},{second} >> {test_file_path}record.csv')

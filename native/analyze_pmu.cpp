@@ -89,7 +89,7 @@ int set_freq(int big_freq, int little_freq) {
     fclose(file_big);
     fclose(file_little);
 
-    //printf("setting freq to:  %d, %d\n", big_freq, little_freq);
+    // printf("setting freq to:  %d, %d\n", big_freq, little_freq);
     return 0;
 }
 
@@ -112,8 +112,6 @@ int set_governor(std::string target_governor) {
 
     return 0;
 }
-
-
 
 void output_max_min_avg_var(std::vector<int>& numbers) {
     int max = *std::max_element(numbers.begin(), numbers.end());
@@ -166,7 +164,24 @@ int set_cpu_mask_all(pid_t pid) {
     return set_cpu_mask(pid, 0, 7);
 }
 
+std::vector<int> get_pid_list(std::string package_name) {
+    std::string str = execute("pidof " + package_name);
+    std::string pid1 = str.substr(0, str.length() - 1);
+    str = execute("ps -T -p " + pid1 + " | grep RenderThread");
+    std::istringstream iss(str);
+    std::vector<std::string> tokens{std::istream_iterator<std::string>{iss},
+                                    std::istream_iterator<std::string>{}};
+
+    std::string pid2 = tokens[2];
+    str = execute("pidof surfaceflinger");
+    std::string pid3 = str.substr(0, str.length() - 1);
+    return {atoi(pid1.c_str()), atoi(pid2.c_str()), atoi(pid3.c_str())};
+}
+
 int main() {
+    std::string package_name = "com.smile.gifmaker";
+    std::string view_name = "com.smile.gifmaker/com.yxcorp.gifshow.HomeActivity#0";
+
     // get available frequencies
     const std::string little_file = "/sys/devices/system/cpu/cpufreq/policy0/scaling_available_frequencies";
     const std::string big_file = "/sys/devices/system/cpu/cpufreq/policy4/scaling_available_frequencies";
@@ -186,12 +201,16 @@ int main() {
     }
 
     // start fps thread
-    FPSGet* fps = new FPSGet("com.smile.gifmaker/com.yxcorp.gifshow.HomeActivity#0");
+    FPSGet* fps = new FPSGet(view_name);
     fps->start();
     sleep(1);
 
     // init some environment
-    std::vector<int> pid_list = {7769, 7884, 1120};
+    std::vector<int> pid_list = get_pid_list(package_name);
+    // for (auto& pid : pid_list) {
+    //     std::cout << pid << ',';
+    // }
+    // std::cout << std::endl;
 
     set_governor("userspace");
     for (int i = 0; i < 3; i++) {
@@ -202,13 +221,19 @@ int main() {
 
     // start traverse
     for (int b = 0; b < 8; b++) {
-        for(int k = 0; k < 3; k++) {
+        for (int k = 0; k < 3; k++) {
             if (position_bit_arr[b][k] == 1) {
-                set_cpu_mask_big(pid_list[k]);
-                std::cout << "big\t";
+                if (set_cpu_mask_big(pid_list[k]) == 0) {
+                    std::cout << "big\t";
+                } else {
+                    std::cout << "switch " << pid_list[k] << " to big failed" << std::endl;
+                }
             } else {
-                set_cpu_mask_little(pid_list[k]);
-                std::cout << "little\t";
+                if (set_cpu_mask_little(pid_list[k]) == 0) {
+                    std::cout << "little\t";
+                } else {
+                    std::cout << "switch " << pid_list[k] << " to little failed" << std::endl;
+                }
             }
         }
         std::cout << std::endl;
@@ -216,12 +241,12 @@ int main() {
         std::vector<std::vector<int>> final_tc(3, std::vector<int>(0));    // gifmaker,  renderthread, surfaceflinger
         std::vector<std::vector<int>> final_inst(3, std::vector<int>(0));  // gifmaker,  renderthread, surfaceflinger
 
-        for (int i = little_freq.size() - 1; i >= 1; i--) {
-            for (int j = big_freq.size() - 1; j >= 1; j--) {
+        for (int i = little_freq.size() - 12; i >= 1; i--) {
+            for (int j = big_freq.size() - 15; j >= 1; j--) {
                 set_freq(big_freq[j], little_freq[i]);
 
                 //  conduct 7 tests
-                for (int eposide = 0; eposide < 7; eposide++) {
+                for (int eposide = 0; eposide < 1; eposide++) {
                     std::vector<long long> taskClockList(pid_list.size());
                     std::vector<long long> instructionsList(pid_list.size());
 
@@ -230,11 +255,11 @@ int main() {
                     // 创建线程获取每个PID的计数器值
                     for (size_t i = 0; i < pid_list.size(); ++i) {
                         threads.emplace_back([&taskClockList, &instructionsList, i, pid_list]() {
-                                getEventCounter(pid_list[i], TASK_CLOCK, taskClockList[i]);
-                                });
+                            getEventCounter(pid_list[i], TASK_CLOCK, taskClockList[i]);
+                        });
                         threads.emplace_back([&taskClockList, &instructionsList, i, pid_list]() {
-                                getEventCounter(pid_list[i], INSTRUCTIONS, instructionsList[i]);
-                                });
+                            getEventCounter(pid_list[i], INSTRUCTIONS, instructionsList[i]);
+                        });
                     }
 
                     // 等待所有线程完成
@@ -242,17 +267,16 @@ int main() {
                         thread.join();
                     }
                     int cur_fps = fps->getFPS();
-       //             std::cout << "cur_fps is " << cur_fps << std::endl;
+                    //             std::cout << "cur_fps is " << cur_fps << std::endl;
 
                     if (cur_fps >= 59) {
-
                         // collect all qualified pmu data
                         for (size_t i = 0; i < pid_list.size(); i++) {
                             final_tc[i].push_back(taskClockList[i]);
                             final_inst[i].push_back(instructionsList[i]);
-    //                        std::cout << "PID: " << pid_list[i] << std::endl;
-     //                       std::cout << "Task Clock: " << taskClockList[i] << std::endl;
-      //                      std::cout << "Instructions: " << instructionsList[i] << std::endl;
+                            //                        std::cout << "PID: " << pid_list[i] << std::endl;
+                            //                       std::cout << "Task Clock: " << taskClockList[i] << std::endl;
+                            //                      std::cout << "Instructions: " << instructionsList[i] << std::endl;
                         }
                     } else {
                         sleep(1);
@@ -281,7 +305,6 @@ int main() {
 
         std::cout << "surfaceflinger_inst:";
         output_max_min_avg_var(final_inst[2]);
-
     }
 
     /*
